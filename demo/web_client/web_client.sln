@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "web_client", "web_client\web_client.vcxproj", "{22FE6870-C75D-4B20-B69A-D899B6425CAD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{22FE6870-C75D-4B20-B69A-D899B6425CAD}.Debug|Win32.ActiveCfg = Debug|Win32
+		{22FE6870-C75D-4B20-B69A-D899B6425CAD}.Debug|Win32.Build.0 = Debug|Win32
+		{22FE6870-C75D-4B20-B69A-D899B6425CAD}.Release|Win32.ActiveCfg = Release|Win32
+		{22FE6870-C75D-4B20-B69A-D899B6425CAD}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
