@@ -4,7 +4,7 @@
 
 // Ref: https://learn.microsoft.com/en-us/windows/win32/winsock/complete-client-code
 
-#define _WIN32_WINNT 0x0501
+#define _WIN32_WINNT 0x0501 
 #define WIN32_LEAN_AND_MEAN
 #include "stdafx.h"
 #include <ws2tcpip.h>
