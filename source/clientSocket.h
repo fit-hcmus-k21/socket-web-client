@@ -1,6 +1,6 @@
+
 #define _WIN32_WINNT 0x0501 
 #define WIN32_LEAN_AND_MEAN
-
 
 #include "stdafx.h"
 #include <ws2tcpip.h>
@@ -10,6 +10,7 @@
 
 #define DEFAULT_BUFLEN 4096
 #define DEFAULT_PORT "80"
+
 
 // class clientSocket
 class clientSocket

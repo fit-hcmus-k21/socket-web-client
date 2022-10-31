@@ -185,6 +185,7 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
 int clientSocket::downloadFileChunked(char *serverName, char *fileName)
 {
     
+    
 }
 
 int clientSocket::downloadFolder(char *serverName, char *folderName)
