@@ -125,28 +125,28 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
     FILE *f;
 
     // xác định kiểu file
-    char *fileType = strrchr(fileName, '.');
+    // char *fileType = strrchr(fileName, '.');
     
 
-    // nếu là file hình ảnh thì mở file để ghi
-    if (strcmp(fileType, ".jpg") == 0 || strcmp(fileType, ".png") == 0 || strcmp(fileType, ".bmp") == 0)
-    {
-        f = fopen(fileName, "wb");
-        if (f == NULL)
-        {
-            printf("Error opening file!\n");
-            exit(1);
-        }
-    }
-    else
-    {
-        f = fopen(fileName, "w");
-        if (f == NULL)
-        {
-            printf("Error opening file!\n");
-            exit(1);
-        }
-    }
+    // // nếu là file hình ảnh thì mở file để ghi
+    // if (strcmp(fileType, ".jpg") == 0 || strcmp(fileType, ".png") == 0 || strcmp(fileType, ".bmp") == 0)
+    // {
+    //     f = fopen(fileName, "wb");
+    //     if (f == NULL)
+    //     {
+    //         printf("Error opening file!\n");
+    //         exit(1);
+    //     }
+    // }
+    // else
+    // {
+    //     f = fopen(fileName, "w");
+    //     if (f == NULL)
+    //     {
+    //         printf("Error opening file!\n");
+    //         exit(1);
+    //     }
+    // }
             int iResult;
             iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
 
@@ -164,17 +164,64 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
             contentLength += 16;
             int length = atoi(contentLength);
 
-            // ghi nội dung vào file
-            if ( iResult > 0 )
+            // lấy content type
+            char *contentType = (char *)malloc(1024);
+            contentType = strstr(header, "Content-Type: ");
+            printf("content type: %s\n", contentType);
+            // tìm trong content-type nếu có text thì mở file để ghi text, nếu có image thì mở file để ghi ảnh
+            
+            if (strstr(contentType, "image") != NULL)
             {
-                printf("Bytes received: %d\n", iResult);
-                printf("data: %s", recvbuf);
-                fwrite(body, length, 1, f);
+                f = fopen(fileName, "wb");
+                if (f == NULL)
+                {
+                    printf("Error opening file!\n");
+                    exit(1);
+                }
+            // ghi nội dung vào file
+                fwrite(body, 1, strlen(body), f);
+                // đọc tiếp nội dung
+                while (length > 0)
+                {
+                    iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+                    fwrite(recvbuf, 1, iResult, f);
+                    length -= iResult;
+                }
+    
+            } else // if (strstr(contentType, "text") != NULL)
+            {
+                f = fopen(fileName, "w");
+                if (f == NULL)
+                {
+                    printf("Error opening file!\n");
+                    exit(1);
+                }
+                // ghi nội dung vào file
+                fprintf(f, "%s", body);
+                printf("data: %s\n", body);
+                printf("length: %d\n", length);
+                // tải nội dung còn lại
+                length -= strlen(body);
+                printf("length: %d\n", length);
+                while (length > 0)
+                {
+                    iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+                    fprintf(f, "%s", recvbuf);
+                    length -= iResult;
+                }
             }
-            else if ( iResult == 0 )
-                printf("Connection closed\n");
-            else
-                printf("recv failed with error: %d\n", WSAGetLastError());
+
+            // ghi nội dung vào file
+            // if ( iResult > 0 )
+            // {
+            //     printf("Bytes received: %d\n", iResult);
+            //     printf("data: %s", recvbuf);
+            //     fwrite(body, length, 1, f);
+            // }
+            // else if ( iResult == 0 )
+            //     printf("Connection closed\n");
+            // else
+            //     printf("recv failed with error: %d\n", WSAGetLastError());
 
     fclose(f);
         

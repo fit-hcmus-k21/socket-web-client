@@ -15,6 +15,10 @@ int __cdecl main(int argc, char **argv) {
     char *host = argv[1];
     if (strstr(host, "http://") != NULL) {
         host = host + 7;
+    } else {
+        if (strstr(host, "https://") != NULL) {
+            host = host + 8;
+        }
     }
 
     // tách host và filename/ folder từ đường dẫn
@@ -44,29 +48,41 @@ int __cdecl main(int argc, char **argv) {
     char *folder = (char *)malloc(100);
 
     // nếu path là / 
-    if (strcmp(path, "/") == 0 && strlen(path) == 1) {
+    if (strcmp(path, "/") == 0) {
         strcpy(fileName, "index.html");
     } else {
         // tìm từ vị trí sau / đầu tiên
         char *p = strchr(path + 1, '/');
         if (p != NULL) {
-            // nếu path là /folder/
-            if (strlen(p) == 1) {
-                folder = path + 1;
-                strcpy(fileName, "index.html");
-            } else {
-                // nếu path là /folder/file
-                folder = path + 1;
-                fileName = p + 1;
+            // tìm đến dấu / cuối cùng trong chuỗi
+            while (strchr(p + 1, '/') != NULL) {
+                p = strchr(p + 1, '/');
             }
-            *p = '\0';
+            // nếu path là /folder/file
+            if (strlen(p) > 1) {
+                // tách file
+                fileName = p + 1;
+            } else {
+                // nếu path là /folder/: lấy folder là tên folder
+                // tìm từ vị trí p trở về trước cho đên khi tìm thấy dấu /
+                char *q = p;
+                while (q != path) {
+                    if (*q == '/') {
+                        break;
+                    }
+                    q--;
+                }
+                // lấy tên folder: copy từ vị trí q + 1 đến p
+                strncpy(folder, q + 1, p - q - 1);
+            }
+
         } else {
             // nếu path là /file
             fileName = path + 1;
         }
     }
 
-    p = strrchr(path, '/'); // tìm vị trí xuất hiện ký tự '/' cuối cùng
+    // p = strrchr(path, '/'); // tìm vị trí xuất hiện ký tự '/' cuối cùng
     
 
     // char *path = (char *) malloc(strlen(fileName) + 1);
