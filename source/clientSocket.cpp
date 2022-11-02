@@ -170,7 +170,7 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
             printf("content type: %s\n", contentType);
             // tìm trong content-type nếu có text thì mở file để ghi text, nếu có image thì mở file để ghi ảnh
             
-            if (strstr(contentType, "image") != NULL)
+            if (strstr(contentType, "image") != NULL || strstr(contentType, "application"))
             {
                 f = fopen(fileName, "wb");
                 if (f == NULL)
@@ -178,14 +178,18 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
                     printf("Error opening file!\n");
                     exit(1);
                 }
-            // ghi nội dung vào file
+                // ghi nội dung vào file
                 fwrite(body, 1, strlen(body), f);
+                length -= strlen(body);
+
                 // đọc tiếp nội dung
-                while (length > 0)
-                {
+                while (length > 0 && iResult > 0){
+                    memset(recvbuf, 0, DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
                     iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
                     fwrite(recvbuf, 1, iResult, f);
                     length -= iResult;
+                    // printf("length: %d\n", length);
+                    // printf("%s", recvbuf);
                 }
     
             } else // if (strstr(contentType, "text") != NULL)
@@ -203,26 +207,15 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
                 // tải nội dung còn lại
                 length -= strlen(body);
                 printf("length: %d\n", length);
-                while (length > 0)
+                while (length > 0 && iResult > 0)
                 {
+                    memset(recvbuf, 0, DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
                     iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
                     fprintf(f, "%s", recvbuf);
                     length -= iResult;
+                    // printf("length: %d\n", length);
                 }
             }
-
-            // ghi nội dung vào file
-            // if ( iResult > 0 )
-            // {
-            //     printf("Bytes received: %d\n", iResult);
-            //     printf("data: %s", recvbuf);
-            //     fwrite(body, length, 1, f);
-            // }
-            // else if ( iResult == 0 )
-            //     printf("Connection closed\n");
-            // else
-            //     printf("recv failed with error: %d\n", WSAGetLastError());
-
     fclose(f);
         
     return 0;
