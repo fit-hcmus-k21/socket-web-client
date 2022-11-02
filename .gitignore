@@ -27,6 +27,12 @@
 *.lib
 
 # Executables
-*.exe
+/source/*.exe
+/demo/*.exe
+/docs/*.exe
+/source/test/*.exe
+/demo/web_client/Debug/*.exe
+/demo/web_client/web_client/*.exe
+
 *.out
 *.app
