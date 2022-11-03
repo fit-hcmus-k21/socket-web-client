@@ -148,7 +148,9 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
     //     }
     // }
             int iResult;
+            memset(recvbuf, 0, sizeof(recvbuf));
             iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+            printf("data: %s\n", recvbuf);
 
             // tách chuỗi để lấy phần header
             char *header = (char *)malloc(1024);
@@ -168,9 +170,11 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
             char *contentType = (char *)malloc(1024);
             contentType = strstr(header, "Content-Type: ");
             printf("content type: %s\n", contentType);
+
+
             // tìm trong content-type nếu có text thì mở file để ghi text, nếu có image thì mở file để ghi ảnh
             
-            if (strstr(contentType, "image") != NULL || strstr(contentType, "application"))
+            if (strstr(contentType, "image") != NULL || strstr(contentType, "application") != NULL)
             {
                 f = fopen(fileName, "wb");
                 if (f == NULL)
@@ -179,8 +183,11 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
                     exit(1);
                 }
                 // ghi nội dung vào file
+                printf("ghi file binary\n");
                 fwrite(body, 1, strlen(body), f);
                 length -= strlen(body);
+                // printf("data: %s\n", body);
+                printf("length: %d\n", length);
 
                 // đọc tiếp nội dung
                 while (length > 0 && iResult > 0){
@@ -202,8 +209,8 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
                 }
                 // ghi nội dung vào file
                 fprintf(f, "%s", body);
-                printf("data: %s\n", body);
-                printf("length: %d\n", length);
+                // printf("data: %s\n", body);
+                // printf("length: %d\n", length);
                 // tải nội dung còn lại
                 length -= strlen(body);
                 printf("length: %d\n", length);
