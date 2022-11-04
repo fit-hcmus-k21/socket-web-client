@@ -1,4 +1,4 @@
-#include "clientSocket.h"
+#include "library.h"
 
 clientSocket::clientSocket()
 {
@@ -100,63 +100,34 @@ int clientSocket::sendRequest(char *request)
     return 0;
 }
 
-int clientSocket::receiveResponse()
-{
-    int iResult;
-    // Receive until the peer closes the connection
-    do {
-        iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-        if ( iResult > 0 )
-        {
-            printf("Bytes received: %d\n", iResult);
-            printf("%s\n", recvbuf);
-        }
-        else if ( iResult == 0 )
-            printf("Connection closed\n");
-        else
-            printf("recv failed with error: %d\n", WSAGetLastError());
-
-    } while( iResult > 0 );
-    return 0;
-}
-
 int clientSocket::downloadFile( char *fileName)
 {
     FILE *f;
 
-            int iResult;
-            memset(recvbuf, '\0', sizeof(recvbuf));
-            iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-            printf("data: %s\n", recvbuf);
+    int iResult;
+    memset(recvbuf, '\0', sizeof(recvbuf));
+    iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+    printf("data: %s\n", recvbuf);
 
-            // tách chuỗi để lấy phần header
-            char *header = (char *)malloc(DEFAULT_BUFLEN);
-            char *body = (char *)malloc(DEFAULT_BUFLEN);
-            memset(body, '\0', sizeof(body));
+    // khai báo biến để lưu header, body, content-type, content-length
+    char *header = (char *)malloc(DEFAULT_BUFLEN);
+    char *body = (char *)malloc(DEFAULT_BUFLEN);
+    memset(body, '\0', sizeof(body));
+    char *contentLength = (char *)malloc(1024);
+    char *contentType = (char *)malloc(1024);
 
-            char *p = strstr(recvbuf, "\r\n\r\n");
-            strncpy(header, recvbuf, p - recvbuf);
-            strcpy(body, p + 4);
+    // tách header, body, content-type, content-length từ response
+    splitResponse(recvbuf, header, body, contentType, contentLength);
 
-            // lấy content length
-            char *contentLength = (char *)malloc(1024);
-            contentLength = strstr(header, "Content-Length: ");
-            contentLength += 16;
-            int length = atoi(contentLength);
+    // Chuyển content-length từ string sang int
+    int length = atoi(contentLength);
 
-            // lấy content type
-            char *contentType = (char *)malloc(1024);
-            contentType = strstr(header, "Content-Type: ");
-            printf("%s\n", contentType);
-
-
-            // tìm trong content-type nếu có text thì mở file để ghi text, nếu có image thì mở file để ghi ảnh
-            
-            if (strstr(contentType, "image") != NULL || strstr(contentType, "application") != NULL)
-            {
-                f = fopen(fileName, "wb");
-                if (f == NULL)
-                {
+    // tìm trong content-type nếu có text thì mở file để ghi text, nếu có image thì mở file để ghi ảnh
+    if (strstr(contentType, "image") != NULL || strstr(contentType, "application") != NULL)
+    {
+        f = fopen(fileName, "wb");
+        if (f == NULL)
+        {
                     printf("Error opening file!\n");
                     exit(1);
                 }
@@ -188,11 +159,7 @@ int clientSocket::downloadFile( char *fileName)
                 }
                 // ghi nội dung vào file
                 fprintf(f, "%s", body);
-                // for (int i = 0; i < strlen(body); i++)
-                // {
-                //     fputc(body[i], f);
-                // }
-               
+        
                 // tải nội dung còn lại
                 length -= strlen(body);
                 printf("length: %d\n", length);
@@ -203,7 +170,6 @@ int clientSocket::downloadFile( char *fileName)
                     
                     fprintf(f, "%s", recvbuf);
                     length -= iResult;
-                    // printf("length: %d\n", length);
                 }
             }
     fclose(f);

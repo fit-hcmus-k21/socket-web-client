@@ -8,6 +8,8 @@ void splitPath(char *url, char *&host, char *&path) {
     } else {
         if (strstr(url, "https://") != NULL) {
             host = url + 8;
+        } else {
+            host = url;
         }
     }
     // tìm vị trí của dấu /
@@ -70,4 +72,40 @@ void getFileName(char *path, char *&fileName, char *&folderName) {
         // nếu path là /file
         fileName = path + 1;
     }
+}
+
+// tách header, body, content-type, content-length từ response
+void splitResponse(char *response, char *&header, char *&body, char *&contentType, char *&contentLength) {
+    // tìm vị trí của \r\n\r\n
+    char *p = strstr(response, "\r\n\r\n");
+    if (p != NULL) {
+        // tách header
+        header = response;
+        // tách body
+        body = p + 4;
+        // tìm vị trí của content-type
+        char *q = strstr(header, "Content-Type: ");
+        if (q != NULL) {
+            // tách content-type
+            contentType = q + 14;
+            // tìm vị trí của \r\n
+            char *r = strstr(contentType, "\r\n");
+            if (r != NULL) {
+                strncpy(contentType, contentType, r - contentType);
+            }
+            
+        }
+        // tìm vị trí của content-length
+        char *s = strstr(header, "Content-Length: ");
+        if (s != NULL) {
+            // tách content-length
+            contentLength = s + 16;
+            // tìm vị trí của \r\n
+            char *t = strstr(contentLength, "\r\n");
+            if (t != NULL) {
+                strncpy(contentLength, contentLength, t - contentLength);
+            }
+        }
+    }
+    *p = '\0';
 }

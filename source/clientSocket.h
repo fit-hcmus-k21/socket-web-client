@@ -31,9 +31,6 @@ public:
     // Send an initial buffer
     int sendRequest(char *request);
 
-    // Receive until the peer closes the connection
-    int receiveResponse();
-
     // download and save file type content-length
     int downloadFile(char *fileName);
 

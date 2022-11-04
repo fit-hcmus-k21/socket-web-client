@@ -15,7 +15,8 @@ int __cdecl main(int argc, char **argv) {
     char *url = (char *)malloc(100);
     char *path = (char *)malloc(100);
     char *host = (char *)malloc(100);
-    char *path = (char *)malloc(100);
+    memset(path, '\0', 100);
+    memset(host, '\0', 100);
     strcpy(url, argv[1]);
     splitPath(url, host, path);
 
