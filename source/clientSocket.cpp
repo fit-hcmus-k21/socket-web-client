@@ -124,37 +124,15 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
 {
     FILE *f;
 
-    // xác định kiểu file
-    // char *fileType = strrchr(fileName, '.');
-    
-
-    // // nếu là file hình ảnh thì mở file để ghi
-    // if (strcmp(fileType, ".jpg") == 0 || strcmp(fileType, ".png") == 0 || strcmp(fileType, ".bmp") == 0)
-    // {
-    //     f = fopen(fileName, "wb");
-    //     if (f == NULL)
-    //     {
-    //         printf("Error opening file!\n");
-    //         exit(1);
-    //     }
-    // }
-    // else
-    // {
-    //     f = fopen(fileName, "w");
-    //     if (f == NULL)
-    //     {
-    //         printf("Error opening file!\n");
-    //         exit(1);
-    //     }
-    // }
             int iResult;
-            memset(recvbuf, 0, sizeof(recvbuf));
+            memset(recvbuf, '\0', sizeof(recvbuf));
             iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
             printf("data: %s\n", recvbuf);
 
             // tách chuỗi để lấy phần header
-            char *header = (char *)malloc(1024);
+            char *header = (char *)malloc(DEFAULT_BUFLEN);
             char *body = (char *)malloc(DEFAULT_BUFLEN);
+            memset(body, '\0', sizeof(body));
 
             char *p = strstr(recvbuf, "\r\n\r\n");
             strncpy(header, recvbuf, p - recvbuf);
@@ -169,7 +147,7 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
             // lấy content type
             char *contentType = (char *)malloc(1024);
             contentType = strstr(header, "Content-Type: ");
-            printf("content type: %s\n", contentType);
+            printf("%s\n", contentType);
 
 
             // tìm trong content-type nếu có text thì mở file để ghi text, nếu có image thì mở file để ghi ảnh
@@ -184,19 +162,20 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
                 }
                 // ghi nội dung vào file
                 printf("ghi file binary\n");
+                printf("strlen(body): %d\n", strlen(body));
                 fwrite(body, 1, strlen(body), f);
                 length -= strlen(body);
-                // printf("data: %s\n", body);
+                printf("body: %s\n", body);
                 printf("length: %d\n", length);
+                printf("iResult: %d\n", iResult);
 
                 // đọc tiếp nội dung
                 while (length > 0 && iResult > 0){
-                    memset(recvbuf, 0, DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
+                    memset(recvbuf, '\0', DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
                     iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
                     fwrite(recvbuf, 1, iResult, f);
                     length -= iResult;
-                    // printf("length: %d\n", length);
-                    // printf("%s", recvbuf);
+                    printf("iResult: %d\n", iResult);
                 }
     
             } else // if (strstr(contentType, "text") != NULL)
@@ -209,15 +188,19 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
                 }
                 // ghi nội dung vào file
                 fprintf(f, "%s", body);
-                // printf("data: %s\n", body);
-                // printf("length: %d\n", length);
+                // for (int i = 0; i < strlen(body); i++)
+                // {
+                //     fputc(body[i], f);
+                // }
+               
                 // tải nội dung còn lại
                 length -= strlen(body);
                 printf("length: %d\n", length);
                 while (length > 0 && iResult > 0)
                 {
-                    memset(recvbuf, 0, DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
+                    memset(recvbuf, '\0', DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
                     iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+                    
                     fprintf(f, "%s", recvbuf);
                     length -= iResult;
                     // printf("length: %d\n", length);
@@ -231,6 +214,8 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
 
 int clientSocket::downloadFileChunked(char *serverName, char *fileName)
 {
+    
+            
     
     
 }

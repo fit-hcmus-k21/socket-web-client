@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define DEFAULT_BUFLEN 4096
+#define DEFAULT_BUFLEN 1000000
 #define DEFAULT_PORT "80"
 
 
