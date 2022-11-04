@@ -35,13 +35,13 @@ public:
     int receiveResponse();
 
     // download and save file type content-length
-    int downloadFile(char *serverName, char *fileName);
+    int downloadFile(char *fileName);
 
     // download and save file type chunked
-    int downloadFileChunked(char *serverName, char *fileName);
+    int downloadFileChunked( char *fileName);
 
     // download all file of folder
-    int downloadFolder(char *serverName, char *folderName);
+    int downloadFolder(char *folderName);
 
     // multiple request
     int multipleRequest(char *serverName, char *fileName);

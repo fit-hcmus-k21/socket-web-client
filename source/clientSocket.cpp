@@ -120,7 +120,7 @@ int clientSocket::receiveResponse()
     return 0;
 }
 
-int clientSocket::downloadFile(char *serverName, char *fileName)
+int clientSocket::downloadFile( char *fileName)
 {
     FILE *f;
 
@@ -212,7 +212,7 @@ int clientSocket::downloadFile(char *serverName, char *fileName)
     
 }
 
-int clientSocket::downloadFileChunked(char *serverName, char *fileName)
+int clientSocket::downloadFileChunked( char *fileName)
 {
     
             
@@ -220,7 +220,7 @@ int clientSocket::downloadFileChunked(char *serverName, char *fileName)
     
 }
 
-int clientSocket::downloadFolder(char *serverName, char *folderName)
+int clientSocket::downloadFolder(char *folderName)
 {
     
 }
