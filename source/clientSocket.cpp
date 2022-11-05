@@ -109,15 +109,27 @@ int clientSocket::downloadFile( char *fileName)
     iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
     printf("data: %s\n", recvbuf);
 
-    // khai báo biến để lưu header, body, content-type, content-length
+    // khai báo biến để lưu header, body, content-type
     char *header = (char *)malloc(DEFAULT_BUFLEN);
     char *body = (char *)malloc(DEFAULT_BUFLEN);
     memset(body, '\0', sizeof(body));
     char *contentLength = (char *)malloc(1024);
     char *contentType = (char *)malloc(1024);
 
-    // tách header, body, content-type, content-length từ response
-    splitResponse(recvbuf, header, body, contentType, contentLength);
+    // tách header, body, content-Type từ response
+    splitResponse(recvbuf, header, body, contentType);
+
+     // tìm vị trí của content-length
+        char *s = strstr(header, "Content-Length: ");
+        if (s != NULL) {
+            // tách content-length
+            contentLength = s + 16;
+            // tìm vị trí của \r\n
+            char *t = strstr(contentLength, "\r\n");
+            if (t != NULL) {
+                strncpy(contentLength, contentLength, t - contentLength);
+            }
+        }
 
     // Chuyển content-length từ string sang int
     int length = atoi(contentLength);
@@ -158,7 +170,7 @@ int clientSocket::downloadFile( char *fileName)
                     exit(1);
                 }
                 // ghi nội dung vào file
-                fprintf(f, "%s", body);
+                fwrite(body, 1, strlen(body), f);
         
                 // tải nội dung còn lại
                 length -= strlen(body);
@@ -168,7 +180,7 @@ int clientSocket::downloadFile( char *fileName)
                     memset(recvbuf, '\0', DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
                     iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
                     
-                    fprintf(f, "%s", recvbuf);
+                    fwrite(recvbuf, 1, iResult, f);
                     length -= iResult;
                 }
             }
@@ -180,10 +192,82 @@ int clientSocket::downloadFile( char *fileName)
 
 int clientSocket::downloadFileChunked( char *fileName)
 {
-    
-            
-    
-    
+    FILE *f;
+    f = fopen(fileName, "w");
+
+    int iResult;
+    memset(recvbuf, '\0', sizeof(recvbuf));
+    iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+    printf("DATA: %s\n", recvbuf);
+
+    // khai báo biến để lưu header, body, content-type, content-length
+    char *header = (char *)malloc(DEFAULT_BUFLEN);
+    char *body = (char *)malloc(DEFAULT_BUFLEN);
+    memset(body, '\0', sizeof(body));
+    char *contentLength = (char *)malloc(1024);
+    char *contentType = (char *)malloc(1024);
+
+    // tách header, body, content-type từ response
+    splitResponse(recvbuf, header, body, contentType);
+
+    // dộ dài của chunk data
+    int length = -1;
+
+    char *chunkLength = (char *)malloc(1024);
+    char *chunkData = (char *)malloc(DEFAULT_BUFLEN);
+    memset(chunkData, '\0', sizeof(chunkData));
+
+    strcpy(recvbuf, body);
+    char *p = strstr(recvbuf, "\r\n");
+    do {
+        while (p != NULL) {
+            if (length == 0 || length == -1) {
+                strncpy(chunkLength, recvbuf, p - recvbuf);
+                // chuyển chunkLength từ hexa sang dec
+                length = strtol(chunkLength, NULL, 16);
+                if (length == 0) {
+                    length = -1;
+                    break;
+                }
+                recvbuf = p + 2;
+                p = strstr(recvbuf, "\r\n");
+                if (p == NULL) {
+                    // ghi file
+                    fwrite(recvbuf, 1, strlen(recvbuf), f);
+                    memset(recvbuf, '\0', sizeof(recvbuf));
+                    length -= strlen(recvbuf); 
+                } else {
+                    strncpy(chunkData, recvbuf, p - recvbuf);
+                    // ghi file
+                    fwrite(chunkData, 1, strlen(chunkData), f);
+                    memset(chunkData, '\0', sizeof(chunkData));
+                    length = 0;
+                    recvbuf = p + 2;
+                    p = strstr(recvbuf, "\r\n");
+                }
+            } else {
+                strncpy(chunkData, recvbuf, p - recvbuf);
+                // ghi file
+                fwrite(chunkData, 1, strlen(chunkData), f);
+                memset(chunkData, '\0', sizeof(chunkData));
+                length = 0;
+                recvbuf = p + 2;
+                p = strstr(recvbuf, "\r\n");
+            }
+        }
+        if (p == NULL && length > 0) {
+                // ghi file
+                fwrite(recvbuf, 1, strlen(recvbuf), f);
+                memset(recvbuf, '\0', sizeof(recvbuf));
+                length -= iResult;        
+        }
+        iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+        p = strstr(recvbuf, "\r\n");
+        printf("DATA: %s\n", recvbuf);
+    } while (iResult > 0 && length != -1);
+
+    fclose(f);
+    return 225;   
 }
 
 int clientSocket::downloadFolder(char *folderName)

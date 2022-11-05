@@ -55,7 +55,9 @@ private:
     struct addrinfo *result;
     struct addrinfo *ptr;
     struct addrinfo hints;
-    char recvbuf[DEFAULT_BUFLEN];
+    // char recvbuf[DEFAULT_BUFLEN];
+    char *recvbuf = (char *)malloc(DEFAULT_BUFLEN);
+    //  nhớ free recvbuf
     int recvbuflen;
 };
 

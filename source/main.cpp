@@ -41,9 +41,16 @@ int __cdecl main(int argc, char **argv) {
     printf("File: %s\n", fileName);
     printf("request: %s\n", request);
 
+    /*
+        tách header để biết download dạng contentLength hay chunked
+        nếu tìm trong header không thấy "Content-Length" thì download dạng chunked
+        ngược lại là transfer encoding : chunked
+    */
+
     // nếu là file 
     if (strlen(fileName) > 0) {
-        client.downloadFile(fileName);
+        // client.downloadFile(fileName);
+        client.downloadFileChunked(fileName);
     } else {
         // nếu là folder
         client.downloadFolder(folderName);

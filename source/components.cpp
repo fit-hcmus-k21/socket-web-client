@@ -74,8 +74,8 @@ void getFileName(char *path, char *&fileName, char *&folderName) {
     }
 }
 
-// tách header, body, content-type, content-length từ response
-void splitResponse(char *response, char *&header, char *&body, char *&contentType, char *&contentLength) {
+// tách header, body, content-type từ response
+void splitResponse(char *response, char *&header, char *&body, char *&contentType) {
     // tìm vị trí của \r\n\r\n
     char *p = strstr(response, "\r\n\r\n");
     if (p != NULL) {
@@ -92,20 +92,8 @@ void splitResponse(char *response, char *&header, char *&body, char *&contentTyp
             char *r = strstr(contentType, "\r\n");
             if (r != NULL) {
                 strncpy(contentType, contentType, r - contentType);
-            }
-            
-        }
-        // tìm vị trí của content-length
-        char *s = strstr(header, "Content-Length: ");
-        if (s != NULL) {
-            // tách content-length
-            contentLength = s + 16;
-            // tìm vị trí của \r\n
-            char *t = strstr(contentLength, "\r\n");
-            if (t != NULL) {
-                strncpy(contentLength, contentLength, t - contentLength);
-            }
-        }
+            }      
+        } 
     }
     *p = '\0';
 }
