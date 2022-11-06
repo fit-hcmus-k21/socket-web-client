@@ -1,0 +1,269 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CS231A: Computer Vision, From 3D Reconstruction to Recognition</title>
+
+  <!-- bootstrap -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+
+  <!-- Google fonts -->
+  <link href='http://fonts.googleapis.com/css?family=Roboto:400,300' rel='stylesheet' type='text/css'>
+
+  <!-- Google Analytics -->
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-77538764-2', 'auto');
+  ga('send', 'pageview');
+</script>
+
+  <link rel="stylesheet" type="text/css" href="style.css" />
+
+  <style>
+  .hh {
+    margin: 10px 0px 10px 0px;
+    border-bottom: 1px solid #8C1515;
+    color: #8C1515;
+  }
+  </style>
+</head>
+
+<body>
+
+<div id="header">
+  <a href="http://svl.stanford.edu/">
+    <img src="img/svl.png" style="height:50px; float: left; margin-left: 20px;">
+  </a>
+  <a href="http://iprl.stanford.edu/">
+    <img src="img/iprl.jpeg" style="height:50px; float: left; margin-left: 20px;">
+  </a>
+  <a href="http://stanford.edu/">
+    <img src="img/stanfordlogo.jpg" style="height:50px; float: right; margin-right: 20px;">
+  </a>
+
+  <a href="index.html">
+    <h1>CS231A: Computer Vision, From 3D Reconstruction to Recognition</h1>
+  </a>
+
+  <div style="clear:both;"></div>
+</div>
+
+<div style="background-color:#8C1515; color:#FFF; padding:15px;">
+<h1>Course Project</h1>
+</div>
+
+<!-- <div class="container sec">
+  Warning: Details still subject to change
+</div> -->
+
+<div class="container sec">
+  <h2>Overview</h2>
+  <p>The Course Project is an opportunity for you to apply what you have learned in class to a problem of your interest.</p>
+
+    <p>Potential projects usually fall into these two tracks:</p>
+    <ul>
+      <li><strong>Applications.</strong> If you're coming to the class with a specific background and interests (e.g. biology, engineering, physics), we'd love to see you apply computer vision to problems related to your particular domain of interest. Pick a real-world problem and apply the techniques covered in the class (or even beyond the class) to solve it! </li>
+      <li><strong>Models.</strong> You can build a new model (algorithm) for computer vision, or a new variant of existing models, and apply it to tackle vision tasks. This track might be more challenging, and sometimes leads to a piece of publishable work. Talk to the course staff if you would like to pursue this route for more ideas!</li>
+    </ul>
+
+
+    <p>To help with coming up with ideas for your project, the CAs have compiled <a href="https://docs.google.com/document/d/1WTV3fOrT4eB7CRDWTq0QczhJjl1jVMpH-qvDw66uz_U/edit?usp=sharing">a list of things</a> to inspire you.</p> 
+    <p>You might look at recent deep learning publications from top-tier vision conferences, as well as other resources below.</p>
+    <ul>
+      <li><a href="https://github.com/kjw0612/awesome-deep-vision">Awesome Deep Vision</a></li>
+      <li><a href="http://www.cv-foundation.org/openaccess/CVPR2016.py">CVPR</a>: IEEE Conference on Computer Vision and Pattern Recognition</li>
+      <li><a href="http://www.cv-foundation.org/openaccess/ICCV2015.py">ICCV</a>: International Conference on Computer Vision</li>
+      <li><a href="http://eccv2014.org/accepted-papers/">ECCV</a>: European Conference on Computer Vision</li>
+      <li><a href="https://papers.nips.cc/book/advances-in-neural-information-processing-systems-29-2016">NIPS</a>: Neural Information Processing Systems</li>
+      <li><a href="http://openreview.net/venue/iclr2014">ICLR</a>: International Conference on Learning Representations</li>
+      <li><a href="http://www.kaggle.com/">Kaggle challenges</a>: An online machine learning competition website. For example, a <a href="https://www.kaggle.com/c/yelp-restaurant-photo-classification">Yelp classification challenge</a>.</li>
+    </ul>
+    <p>You are welcome to come to our office hours to brainstorm and suggest your project ideas. We also provide a list of popular computer vision datasets:</p>
+    
+    <p>
+      <ul>
+        <li><a href="http://www.cvpapers.com/datasets.html">Meta Pointer: A large collection organized by CV Datasets.</a></li>
+        <li><a href="http://riemenschneider.hayko.at/vision/dataset/">Yet another Meta pointer</a></li>
+        <li><a href="http://http://image-net.org/">ImageNet</a>: a large-scale image dataset for visual recognition organized by <a href="http://wordnet.princeton.edu/">WordNet</a> hierarchy</li>
+        <li><a href="http://groups.csail.mit.edu/vision/SUN/">SUN Database</a>: a benchmark for scene recognition and object detection with annotated scene categories and segmented objects</li>
+        <li><a href="http://places.csail.mit.edu/">Places Database</a>: a scene-centric database with 205 scene categories and 2.5 millions of labelled images</li>
+        <li><a href="http://cs.nyu.edu/~silberman/datasets/nyu_depth_v2.html">NYU Depth Dataset v2</a>: a RGB-D dataset of segmented indoor scenes</li>
+        <li><a href="http://mscoco.org/">Microsoft COCO</a>: a new benchmark for image recognition, segmentation and captioning</li>
+        <li><a href="http://yahoolabs.tumblr.com/post/89783581601/one-hundred-million-creative-commons-flickr-images">Flickr100M</a>: 100 million creative commons Flickr images</li>
+        <li><a href="http://vis-www.cs.umass.edu/lfw/">Labeled Faces in the Wild</a>: a dataset of 13,000 labeled face photographs</li>
+        <li><a href="http://human-pose.mpi-inf.mpg.de/">Human Pose Dataset</a>: a benchmark for articulated human pose estimation</li>
+        <li><a href="http://www.cs.tau.ac.il/~wolf/ytfaces/">YouTube Faces DB</a>: a face video dataset for unconstrained face recognition in videos</li>
+        <li><a href="http://crcv.ucf.edu/data/UCF101.php">UCF101</a>: an action recognition data set of realistic action videos with 101 action categories</li>
+        <li><a href="http://serre-lab.clps.brown.edu/resource/hmdb-a-large-human-motion-database/">HMDB-51</a>: a large human motion dataset of 51 action classes</li>
+        <li><a href="http://visualgenome.org/">Visual Genome</a>: a large-scale dataset that connects structured image concepts to natural language</li>
+        <li><a href="http://cvgl.stanford.edu/projects/objectnet3d/">ObjectNet3D</a>: a large-scale database aligning images with 3D shapes</li>
+      </ul>
+    </p>
+
+  <h2>Ideas From the CAs</h2>
+  We will release a set of ideas from the CAs soon.
+  <!--The CAs have compiled a list of project ideas <a href="https://docs.google.com/document/d/10au9X0Wx68fZ7C6ZQ9hnT05v-LI6oNmXZAgnPCoizwM/edit?usp=sharing"=sharing>here</a>. We recommend that you look them over. See something interesting? The CA responsible for that idea would be delighted to hear about it and will offer project guidance for the quarter (though you're welcome to reach out to any CA for help).-->
+  <h2>Important Dates</h2>
+
+  Project proposal: due January 27<br>
+  Midterm progress report: due Februrary 20<br>
+  The project presentations session will be held on Mar 14<br>
+  Final course project: due <b>Mar 18</b> (11:59pm).<br><br>
+
+  <h2>Grading Policy</h2>
+  The Course Project contributes to 38% of your final grade. Specifically, it is broken down into a few main parts:
+  <ul>
+    <li>Project Proposal: 1%</li>
+    <li>Midterm Project Report: 5%</li>
+    <li>Final Project Report: 25%</li>
+    <li>Final Project Presentation: 7%</li>
+  </ul>
+  <h2>Project Proposal</h2>
+  The project proposal should be up to 2 pages and should contain the following:
+  <p>
+  <ul>
+    <li>
+    What is the problem that you will be investigating? Why is it interesting?
+    </li>
+    <li>
+    What data will you use? If you are collecting new datasets, how do you plan to collect them?
+    </li>
+    <li>
+    What method or algorithm are you proposing? If there are existing implementations, will you use them and how? How do you plan to improve or modify such implementations?
+    </li>
+    <li>
+    What reading will you examine to provide context and background?
+    </li>
+    <li>
+    How will you evaluate your results? Qualitatively, what kind of results do you expect (e.g. plots or figures)? Quantitatively, what kind of analysis will you use to evaluate and/or compare your results (e.g. what performance metrics or statistical tests)?
+    </li>
+    <li>
+    By what dates will you complete certain parts of your project? List specific goals for the midterm progress report.
+    </li>
+  </ul>
+  We highly recommend submitting a project proposal and talking to the course staff about your proposed project throughout the quarter. Generally, we find that students who do this end up with very strong, and even publishable, final projects.
+</p>
+If your proposed project is joint with another class' project (with the consent of the other class' instructor), make this clear in the proposal.
+
+  <h2>Midterm Progress Report</h2>
+  Your midterm progress report should be at most 4 pages using the <a href="http://www.pamitc.org/cvpr15/files/cvpr2015AuthorKit.zip">provided template</a>. The following is a suggested structure for your report:
+  <p>
+    <ul>
+      <li>Title, Author(s)</li>
+      <li>Introduction: this section introduces your problem, and the overall plan for approaching your problem</li>
+      <li>Problem statement: Describe your problem precisely specifying the dataset to be used, expected results and evaluation</li>
+      <li>Technical Approach: Describe the methods you intend to apply to solve the given problem</li>
+      <li>
+      Intermediate/Preliminary Results: State and evaluate your results up to the current date
+      </li>
+    </ul>
+  </p>
+  <p>
+    <strong>Submission</strong>: Please upload a PDF file to the assignments tab on <a href="https://www.gradescope.com">Gradescope</a>. If you are working in a team, please use the team function on Gradescope. The late days are counted by the timestamp of the last submission in the team.
+  </p>
+
+  <h2>Final Submission</h2>
+  Your final write-up should be between <b>6 - 8</b> pages using the <a href="http://www.pamitc.org/cvpr15/files/cvpr2015AuthorKit.zip">provided template</a>. After the class, we will post all the final reports online so that you can read about each others' work. If you do not want your writeup to be posted online, then please let us know at least a week in advance of the final writeup submission deadline. 
+
+  <br><br>
+  Submit your final submission through <b>Gradescope</b>. You will submit the following:
+  <ol>
+    <li>A PDF file of your final report</li>
+    <li>A link to your Git repository. Please put this somewhere in your final report (and add a member of the course staff if it is a private repository).</li>
+  </ol>
+
+  <br>
+  <b>Report</b>. The following is a suggested structure for the report:
+  <ul>
+  <li>Title, Author(s)</li>
+  <li>Abstract: It should not be more than 300 words</li>
+  <li>Introduction: this section introduces your problem, and the overall plan for approaching your problem</li>
+  <li>Background/Related Work: This section discusses relevant literature for your project</li>
+  <li>Approach: This section details the framework of your project. Be specific, which means you might want to include equations, figures, plots, etc</li>
+  <li>Experiment: This section begins with what kind of experiments you're doing, what kind of dataset(s) you're using, and what is the way you measure or evaluate your results. It then shows in details the results of your experiments. By details, we mean both quantitative evaluations (show numbers, figures, tables, etc) as well as qualitative results (show images, example results, etc).</li>
+  <li>Conclusion: What have you learned? Suggest future ideas.</li>
+  <li>References: This is absolutely necessary.</li>
+  </ul>
+
+  <br>
+  <b>Supplementary Material</b> is not counted toward your 6-8 page limit.
+
+  <br>Examples of things to put in your supplementary material: 
+  <ul>
+    <li>Source code (if your project proposed an algorithm, or code that is relevant and important for your project.).</li>
+    <li>Cool videos, interactive visualizations, demos, etc.</li>
+  </ul>
+  Examples of things to not put in your supplementary material: 
+  <ul>
+    <li>All of your source code. Instead give a link to a Git repository</li>
+    <li>Various ordinary data preprocessing scripts.</li>
+    <li>Any code that is larger than 1MB.</li>
+    <li>Model checkpoints.</li>
+    <li>A computer virus.</li>
+  </ul>
+  
+  <h2>Project Presentations</h2>
+  We will hold a session in which you will present the results of your projects to your classmates and instructors. They will be held at follows:
+  
+  <h3>Logistics</h3>
+
+The final project presentation will be held on March 14th at the regular class time. There will be five parallel Zoom sessions, and you should attend the one corresponding to your <aassigned project mentor. The link to each Zoom session will be on the class calendar, as with the links to lectures and CA sessions. During these sessions, each team will be given 5 minutes to present their project and one minute for Q&A. You should attend the whole session and watch other teams’ presentations as well as presenting yourself. Each session will be attended by its corresponding CA who will be primarily in charge of grading, and the course professors will also attend several of the sessions; the sessions will also be recorded for instructors to view later.
+
+You may prepare either a set of slides or a poster for presenting. If you have a team with multiple members, you should divide up the presentation amongst yourselves. If you are unable to attend the live Zoom session due to a time zone issue or work commitments, you can send us a recording of your presentation instead.
+
+<h3>Presentation Contents</h3>
+
+The contents of the presentation should be similar to the contents of the final project report, with more emphasis on your approach and results. A rough suggested allocation of time is the following:
+ <ul>
+    <li>Introduction: Introduce the motivation and your problem, and then relevant prior work and approaches for this problem (1 minute)</li>
+    <li>Approach: Provide an overview of your approach and highlight the key technical aspects you worked on. If you have not fully finished implementing your approach, highlight what parts are done and which are still planned for the final report. (2 minutes)</li>
+    <li>Experiments and evaluation: Explain the experimental setup and summarize the quantitative results (numbers, figures, tables, etc) and qualitative results (images, example results, etc). If the results are not as expected, explain what the challenges are and how you plan to improve the results in the final report. (2 minutes)</li>
+ </ul>
+<h3>Grading</h3>
+
+We will be grading for completeness and clarity moreso than the quality of your results. The rubric will be split into the following categories:
+ <ul>
+    <li>20% for problem statement, motivation, and background</li>
+    <li>30% for technical approach</li>
+    <li>30% for sufficient and informative quantitative and qualitative results </li>
+    <li>10% for visual style</li>
+    <li>10% for addressing questions raised during Q&A</li>
+ </ul>
+Grades for each category will be assigned on a standard scale out of 5.
+
+  <h2>Example Project Reports</h2>
+  Your project reports should structure like a computer vision conference paper (CVPR, ECCV, ICCV, etc.). You can find publications from Stanford's Computational Vision & Geometry Lab (CVGL) <a href="http://cvgl.stanford.edu/publications.html">here</a> and from the Stanford Vision Lab from <a href="http://vision.stanford.edu/publications.html">here</a>. In addition, you may also take a look at some previous projects from other Stanford CS classes, such as <a href="https://web.stanford.edu/class/cs331b/2016/projects.html">CS331B</a>, <a href="http://cs231n.stanford.edu/2016/reports.html">CS231N</a>, <a href="https://web.stanford.edu/class/cs221/project-list.html">CS221</a>, <a href="http://cs229.stanford.edu/projects2013.html">CS229</a> and <a href="http://web.stanford.edu/class/cs224w/projects.html">CS224W</a>. 
+
+  <div class='hh'>Projects from previous years</div>
+  You can see project reports from previous years here:
+  <ul>
+      <li><a href="projects2021.html">Winter 2021</a></li>
+      <li><a href="projects2016.html">Spring 2016</a></li>
+      <li><a href="projects2015.html">Winter 2015</a></li>
+  </ul>
+
+  <h2>Collaboration Policy</h2>
+  You can work in teams of up to <strong>3</strong> people. We do expect that projects done with 3 people have more impressive writeup and results than projects done with 2 people. To get a sense for the scope and expectations for the projects have a look at project reports from previous years.
+
+  <h2>Honor Code</h2>
+  You may consult any papers, books, online references, or publicly available implementations for ideas and code that you may want to incorporate into your strategy or algorithm, so long as you clearly cite your sources in your code and your writeup. However, under no circumstances may you look at another group’s code or incorporate their code into your project.
+  
+  <br><br>
+  If you are doing a similar project for another class, you must make this clear and write down the exact portion of the project that is being counted for CS231A.
+
+</div>
+
+<!-- jQuery and Boostrap -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+</body>
+
+</html>

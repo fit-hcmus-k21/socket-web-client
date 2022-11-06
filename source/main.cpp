@@ -49,11 +49,26 @@ int __cdecl main(int argc, char **argv) {
 
     // nếu là file 
     if (strlen(fileName) > 0) {
-        // client.downloadFile(fileName);
-        client.downloadFileChunked(fileName);
+        // chỉnh tên file theo cấu trúc: host_fileName, lưu vào folder releases
+        char *newFileName = (char *)malloc(100);
+        memset(newFileName, '\0', 100);
+        strcat(newFileName, "releases\\");
+        strcat(newFileName, host);
+        strcat(newFileName, "_");
+        strcat(newFileName, fileName);
+
+        client.downloadFile(newFileName);
+        // client.downloadFileChunked(fileName);
     } else {
-        // nếu là folder
-        client.downloadFolder(folderName);
+        // nếu là folder: chỉnh tên folder theo cấu trúc: host_folderName, lưu vào folder releases
+        char *newFolderName = (char *)malloc(100);
+        memset(newFolderName, '\0', 100);
+        strcat(newFolderName, "releases\\");
+        strcat(newFolderName, host);
+        strcat(newFolderName, "_");
+        strcat(newFolderName, newFolderName);
+
+        // client.downloadFolder(folderName);
     }
 
     client.closeConnection();
