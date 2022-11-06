@@ -100,7 +100,7 @@ int clientSocket::sendRequest(char *request)
     return 0;
 }
 
-int clientSocket::downloadFile( char *fileName)
+int clientSocket::downloadFileCLength( char *fileName)
 {
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
@@ -119,10 +119,9 @@ int clientSocket::downloadFile( char *fileName)
     char *body = (char *)malloc(DEFAULT_BUFLEN);
     memset(body, '\0', sizeof(body));
     char *contentLength = (char *)malloc(1024);
-    char *contentType = (char *)malloc(1024);
 
-    // tách header, body, content-Type từ response
-    splitResponse(recvbuf, header, body, contentType);
+    // tách header, body từ response
+    splitResponse(recvbuf, header, body);
 
      // tìm vị trí của content-length
     char *s = strstr(header, "Content-Length: ");
@@ -171,103 +170,106 @@ int clientSocket::downloadFile( char *fileName)
 }
 
 int clientSocket::downloadFileChunked( char *fileName) {
-    FILE *f;
-    f = fopen(fileName, "w");
+    FILE *f = fopen(fileName, "wb");
+    if (f == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(1);
+    }
+    int iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+    printf("\nDATA: \n%s\n", recvbuf);
 
-    int iResult;
-    memset(recvbuf, '\0', sizeof(recvbuf));
-    iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-
-    // khai báo biến để lưu header, body, content-type, content-length
+    // khai báo biến để lưu header, body, content-type
     char *header = (char *)malloc(DEFAULT_BUFLEN);
     char *body = (char *)malloc(DEFAULT_BUFLEN);
     memset(body, '\0', sizeof(body));
-    char *contentLength = (char *)malloc(1024);
-    char *contentType = (char *)malloc(1024);
+    
+    // tách header, body từ response
+    splitResponse(recvbuf, header, body);
 
-    // tách header, body, content-type từ response
-    splitResponse(recvbuf, header, body, contentType);
-
-    // in dữ liệu để kiểm tra
-    printf("\n\nHEADER: \n\n%s\n\n", header);
-    printf("\n\nBODY: \n\n%s\n\n", body);
-
-    // dộ dài của chunk data
-    int length = -1;
-
-    char *chunkLength = (char *)malloc(1024);
+    // khai báo biến lưu chunk size và con trỏ tới chunk data
+    char *chunkSize = (char *)malloc(1024);
     char *chunkData = (char *)malloc(DEFAULT_BUFLEN);
-    memset(chunkData, '\0', sizeof(chunkData));
+    memset(chunkSize, '\0', 1024);
+    memset(chunkData, '\0', sizeof(DEFAULT_BUFLEN));
 
+    int size = 0;
     strcpy(recvbuf, body);
-    char *p = strstr(recvbuf, "\r\n");
+    iResult = iResult - (body - recvbuf);
+    int i = 5;
     do {
-        while (p != NULL) {
-            if (length == 0 || length == -1) {
-                strncpy(chunkLength, recvbuf, p - recvbuf);
-                // Tìm và bỏ chunk extension nếu có
-                char *t = strstr(chunkLength, ";");
+        do {
+            printf("\n\niResult: %d\n", iResult);
+            if (size == 0) {
+                // tìm vị trí của \r\n
+                char *t = strstr(recvbuf, "\r\n");
+                printf("\n\nDATA: \n\n%s\n\n", recvbuf);
                 if (t != NULL) {
-                    strncpy(chunkLength, chunkLength, t - chunkLength);
-                }
-                // chuyển chunkLength từ hexa sang dec
-                length = strtol(chunkLength, NULL, 16);
-                
-                printf("\n\nLength: %d\n\n",length);
+                    strncpy(chunkSize, recvbuf, t - recvbuf);
 
-                if (length == 0) {
-                    length = -1;
+                    // bỏ qua chunk extension cách bởi dấu ; nếu có
+                    char *s = strstr(chunkSize, ";");
+                    if (s != NULL) {
+                        strncpy(chunkSize, chunkSize, s - chunkSize);
+                    }
+                    printf("\n\nchunkSize: %s\n", chunkSize);
+                    size = strtol(chunkSize, NULL, 16);
+                    memset(chunkSize, '\0', 1024);
+                    if (size == 0) {
+                        printf("\n\nline: 215\n");
+                        size = -1;
+                        printf("\nDATA: \n%s\n", recvbuf);
+                        fwrite(t + 2, 1, iResult - (t + 2 - recvbuf), f);
+                        break;
+                    }
+                    printf("\nsize line 218: %d\n", size);
+                    chunkData = t + 2;
+                    iResult = iResult - (chunkData - recvbuf);
+                    recvbuf = chunkData;
+                    printf("\niResult line 219: %d\n", iResult);
+
+                    if (iResult >= size) {
+                        fwrite(chunkData, 1, size, f);
+                        iResult = iResult - size;
+                        recvbuf = recvbuf + size + 2;
+                        size = 0;
+                        printf("\n\nline: 228\n");
+                    } else {
+                        fwrite(chunkData, 1, iResult, f);
+                        size -= iResult;
+                        memset(recvbuf, '\0', DEFAULT_BUFLEN);
+                        iResult = 0;
+                        printf("\n\nline: 236\n");
+                    }
+                } else {
+                    printf("\n\nline: 240\n");
+                    size = -1;
                     break;
                 }
-                recvbuf = p + 2;
-                if (strlen(recvbuf) >= length + 2) {
-                    strncpy(chunkData, recvbuf, length);
-                    fwrite(chunkData, 1, length, f);
-                    memset(chunkData, '\0', sizeof(chunkData));
-                    length = 0;
-                    recvbuf = recvbuf + length + 2;
-                    p = strstr(recvbuf, "\r\n");
-                } else {
-                    fwrite(recvbuf, 1, strlen(recvbuf), f);
-                    length -= strlen(recvbuf);
-                    memset(recvbuf, '\0', sizeof(recvbuf));
-                    p = NULL;
-                }
             } else {
-                if (p - recvbuf < length && strlen(recvbuf) >= length + 2) {
-                    strncpy(chunkData, recvbuf, length);
-                    fwrite(chunkData, 1, length, f);
-                    memset(chunkData, '\0', sizeof(chunkData));
-                    length = 0;
-                    recvbuf = recvbuf + length + 2;
-                    p = strstr(recvbuf, "\r\n");
-                } if (strlen(recvbuf) < length) {
-                    fwrite(recvbuf, 1, strlen(recvbuf), f);
-                    length -= strlen(recvbuf);
-                    memset(recvbuf, '\0', sizeof(recvbuf));
-                    p = NULL;
+                if (iResult >= size) {
+                    fwrite(recvbuf, 1, size, f);
+                    iResult = iResult - size;
+                    recvbuf = recvbuf + size + 2;
+                    size = 0;
+                    printf("\n\nline: 245\n");
                 } else {
-                    fwrite(recvbuf, 1, length, f);
-                    length = 0;
-                    recvbuf = recvbuf + length + 2;
-                    p = strstr(recvbuf, "\r\n");
+                    fwrite(recvbuf, 1, iResult, f);
+                    size -= iResult;
+                    memset(recvbuf, '\0', DEFAULT_BUFLEN);
+                    iResult = 0;
+                    printf("\n\nline: 253\n");
                 }
-                
             }
-        }
-        if (p == NULL && length > 0) {
-            
-                printf("\n\nLength: %d\n\n",length);
+            printf("\n\nsize: %d\n", size);
+            printf("\n\niResult: %d\n", iResult);
+            i--;
 
-                // ghi file
-                fwrite(recvbuf, 1, strlen(recvbuf), f);
-                memset(recvbuf, '\0', sizeof(recvbuf));
-                length -= iResult;        
-        }
+        } while (iResult > 0 ); 
         iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-        p = strstr(recvbuf, "\r\n");
-        printf("\n\nDATA: %s\n", recvbuf);
-    } while (iResult > 0 && length != -1);
+    } while (iResult > 0 && size != -1);
+
+
 
     fclose(f);
     return 225;   

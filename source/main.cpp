@@ -57,8 +57,8 @@ int __cdecl main(int argc, char **argv) {
         strcat(newFileName, "_");
         strcat(newFileName, fileName);
 
-        client.downloadFile(newFileName);
-        // client.downloadFileChunked(fileName);
+        // client.downloadFileCLength(newFileName);
+        client.downloadFileChunked(newFileName);
     } else {
         // nếu là folder: chỉnh tên folder theo cấu trúc: host_folderName, lưu vào folder releases
         char *newFolderName = (char *)malloc(100);

@@ -32,7 +32,7 @@ public:
     int sendRequest(char *request);
 
     // download and save file type content-length
-    int downloadFile(char *fileName);
+    int downloadFileCLength(char *fileName);
 
     // download and save file type chunked
     int downloadFileChunked( char *fileName);
