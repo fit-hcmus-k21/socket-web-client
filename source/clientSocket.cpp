@@ -102,12 +102,17 @@ int clientSocket::sendRequest(char *request)
 
 int clientSocket::downloadFile( char *fileName)
 {
-    FILE *f;
+    FILE *f = fopen(fileName, "wb");
+    if (f == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(1);
+    }
 
     int iResult;
     memset(recvbuf, '\0', sizeof(recvbuf));
     iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-    printf("data: %s\n", recvbuf);
+    // printf("\nDATA: \n%s\n", recvbuf);
 
     // khai báo biến để lưu header, body, content-type
     char *header = (char *)malloc(DEFAULT_BUFLEN);
@@ -129,58 +134,36 @@ int clientSocket::downloadFile( char *fileName)
         if (t != NULL) {
             strncpy(contentLength, contentLength, t - contentLength);
         }
+    } else {
+        s = strstr(header, "content-length: ");
+        if (s != NULL) {
+            // tách content-length
+            contentLength = s + 16;
+            // tìm vị trí của \r\n
+            char *t = strstr(contentLength, "\r\n");
+            if (t != NULL) {
+                strncpy(contentLength, contentLength, t - contentLength);
+            }
+        }
     }
 
     // Chuyển content-length từ string sang int
     int length = atoi(contentLength);
 
-    // tìm trong content-type nếu có image thì mở file nhị phân, ngược lại thì mở file để ghi text, 
-    if (strstr(contentType, "image") != NULL || strstr(contentType, "application") != NULL)
-    {
-        f = fopen(fileName, "wb");
-        if (f == NULL)
-        {
-            printf("Error opening file!\n");
-            exit(1);
-        }
-        // ghi nội dung vào file
-        printf("ghi file binary\n");
-        printf("strlen(body): %d\n", strlen(body));
-        fwrite(body, 1, strlen(body), f);
-        length -= strlen(body);
-        printf("body: %s\n", body);
-        printf("length: %d\n", length);
-        printf("iResult: %d\n", iResult);
+    // mở file để ghi
+    int n = iResult - (body - recvbuf);
+    fwrite(body, 1, n, f);
+    length -= n;
 
-        // đọc tiếp nội dung
-        while (length > 0 && iResult > 0) {
+    // tiếp tục nhận dữ liệu
+    while (length > 0 && iResult > 0) {
         memset(recvbuf, '\0', DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
         iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
         fwrite(recvbuf, 1, iResult, f);
         length -= iResult;
-        printf("iResult: %d\n", iResult);
-        }
-    
-    } else {
-        f = fopen(fileName, "wb");
-        if (f == NULL) {
-            printf("Error opening file!\n");
-            exit(1);
-        }
-        // ghi nội dung vào file
-        fwrite(body, 1, strlen(body), f);
-        
-        // tải nội dung còn lại
-        length -= strlen(body);
-        printf("length: %d\n", length);
-        while (length > 0 && iResult > 0) {
-            memset(recvbuf, '\0', DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
-            iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-                    
-            fwrite(recvbuf, 1, iResult, f);
-            length -= iResult;
-        }
     }
+
+    // đóng file
     fclose(f);
         
     return 0;
@@ -316,5 +299,10 @@ int clientSocket::closeConnection()
         WSACleanup();
         return 1;
     }
+
+    // cleanup
+    closesocket(ConnectSocket);
+    WSACleanup();
+
     return 0;
 }

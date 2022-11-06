@@ -93,7 +93,16 @@ void splitResponse(char *response, char *&header, char *&body, char *&contentTyp
             if (r != NULL) {
                 strncpy(contentType, contentType, r - contentType);
             }      
-        } 
+        } else {
+            q = strstr(header, "content-type: ");
+            if (q != NULL) {
+                contentType = q + 14;
+                char *r = strstr(contentType, "\r\n");
+                if (r != NULL) {
+                    strncpy(contentType, contentType, r - contentType);
+                }      
+            }
+        }
     }
     *p = '\0';
 }
