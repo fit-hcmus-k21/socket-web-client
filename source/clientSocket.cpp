@@ -177,9 +177,10 @@ int clientSocket::downloadFileChunked( char *fileName) {
         exit(1);
     }
     int iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-    printf("\nDATA: \n%s\n", recvbuf);
+    printf("\n\nỉResult: %d\n", iResult);
+    // printf("\nDATA: \n%s\n", recvbuf);
 
-    // khai báo biến để lưu header, body, content-type
+    // khai báo biến để lưu header, body
     char *header = (char *)malloc(DEFAULT_BUFLEN);
     char *body = (char *)malloc(DEFAULT_BUFLEN);
     memset(body, '\0', sizeof(body));
@@ -194,16 +195,16 @@ int clientSocket::downloadFileChunked( char *fileName) {
     memset(chunkData, '\0', sizeof(DEFAULT_BUFLEN));
 
     int size = 0;
-    strcpy(recvbuf, body);
     iResult = iResult - (body - recvbuf);
-    int i = 5;
-    do {
+    strcpy(recvbuf, body);
+
+    while (iResult > 0 && size != -1) {
         do {
             printf("\n\niResult: %d\n", iResult);
             if (size == 0) {
                 // tìm vị trí của \r\n
                 char *t = strstr(recvbuf, "\r\n");
-                printf("\n\nDATA: \n\n%s\n\n", recvbuf);
+                // printf("\n\nDATA: \n\n%s\n\n", recvbuf);
                 if (t != NULL) {
                     strncpy(chunkSize, recvbuf, t - recvbuf);
 
@@ -218,15 +219,11 @@ int clientSocket::downloadFileChunked( char *fileName) {
                     if (size == 0) {
                         printf("\n\nline: 215\n");
                         size = -1;
-                        printf("\nDATA: \n%s\n", recvbuf);
-                        fwrite(t + 2, 1, iResult - (t + 2 - recvbuf), f);
                         break;
                     }
-                    printf("\nsize line 218: %d\n", size);
                     chunkData = t + 2;
                     iResult = iResult - (chunkData - recvbuf);
                     recvbuf = chunkData;
-                    printf("\niResult line 219: %d\n", iResult);
 
                     if (iResult >= size) {
                         fwrite(chunkData, 1, size, f);
@@ -263,13 +260,14 @@ int clientSocket::downloadFileChunked( char *fileName) {
             }
             printf("\n\nsize: %d\n", size);
             printf("\n\niResult: %d\n", iResult);
-            i--;
 
         } while (iResult > 0 ); 
-        iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-    } while (iResult > 0 && size != -1);
 
-
+        if (size != -1) {
+            memset(recvbuf, '\0', DEFAULT_BUFLEN);
+            iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+        }
+    }
 
     fclose(f);
     return 225;   
@@ -277,7 +275,24 @@ int clientSocket::downloadFileChunked( char *fileName) {
 
 int clientSocket::downloadFolder(char *folderName)
 {
+    // tạo thư mục
+    if (mkdir(folderName) == -1) 
+    {
+        printf("Error creating directory!\n");
+        exit(1);
+    }
+
+    // tải file index.html
+    char *fileName = (char *)malloc(1024);
+    memset(fileName, '\0', 1024);
+    strcpy(fileName, folderName);
+    strcat(fileName, "\\index.html");
+
+    downloadFileCLength(fileName);
+
+
     
+    return 225;
 }
 
 int clientSocket::multipleRequest(char *serverName, char *fileName)

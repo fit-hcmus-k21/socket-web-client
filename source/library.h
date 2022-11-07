@@ -1,4 +1,6 @@
 #include "clientSocket.h"
+#include <direct.h>
+
 #include <bits/stdc++.h>
 using namespace std;
 

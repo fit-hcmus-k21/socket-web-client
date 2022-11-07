@@ -68,7 +68,7 @@ int __cdecl main(int argc, char **argv) {
         strcat(newFolderName, "_");
         strcat(newFolderName, folderName);
 
-        // client.downloadFolder(NewFolderName);
+        client.downloadFolder(newFolderName);
     }
 
     client.closeConnection();
