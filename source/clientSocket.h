@@ -31,11 +31,14 @@ public:
     // Send an initial buffer
     int sendRequest(char *request);
 
+    // download file
+    void downloadFile(char *fileName);
+
     // download and save file type content-length
-    int downloadFileCLength(char *fileName);
+    int downloadFileCLength(char *fileName, char *recvbuf, int iResult, int length);
 
     // download and save file type chunked
-    int downloadFileChunked( char *fileName);
+    int downloadFileChunked( char *fileName, char *recvbuf, int iResult);
 
     // download all file of folder
     int downloadFolder(char *folderName);

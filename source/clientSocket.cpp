@@ -100,41 +100,31 @@ int clientSocket::sendRequest(char *request)
     return 0;
 }
 
-int clientSocket::downloadFileCLength( char *fileName)
-{
-    FILE *f = fopen(fileName, "wb");
-    if (f == NULL)
-    {
-        printf("Error opening file!\n");
-        exit(1);
-    }
-
+void clientSocket::downloadFile(char *fileName) {
     int iResult;
-    memset(recvbuf, '\0', sizeof(recvbuf));
+    memset(recvbuf, 0, DEFAULT_BUFLEN);
     iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-    // printf("\nDATA: \n%s\n", recvbuf);
 
-    // khai báo biến để lưu header, body, content-type
+    // khai báo biến để lưu header, body
     char *header = (char *)malloc(DEFAULT_BUFLEN);
+    memset(header, 0, DEFAULT_BUFLEN);
     char *body = (char *)malloc(DEFAULT_BUFLEN);
     memset(body, '\0', sizeof(body));
-    char *contentLength = (char *)malloc(1024);
 
-    // tách header, body từ response
+    // tách header và body
     splitResponse(recvbuf, header, body);
+    iResult = iResult - (body - recvbuf);
 
-     // tìm vị trí của content-length
-    char *s = strstr(header, "Content-Length: ");
-    if (s != NULL) {
-        // tách content-length
-        contentLength = s + 16;
-        // tìm vị trí của \r\n
-        char *t = strstr(contentLength, "\r\n");
-        if (t != NULL) {
-            strncpy(contentLength, contentLength, t - contentLength);
-        }
+    // tìm trong header xem có chunked hay không
+    if (strstr(header, "chunked") != NULL) {
+        downloadFileChunked(fileName, body, iResult);
     } else {
-        s = strstr(header, "content-length: ");
+        // tìm trong header để lấy size content
+        char *contentLength = (char *) malloc(1024);
+        memset(contentLength, 0, 1024);
+
+         // tìm vị trí của content-length
+        char *s = strstr(header, "Content-Length: ");
         if (s != NULL) {
             // tách content-length
             contentLength = s + 16;
@@ -143,16 +133,37 @@ int clientSocket::downloadFileCLength( char *fileName)
             if (t != NULL) {
                 strncpy(contentLength, contentLength, t - contentLength);
             }
+        } else {
+            s = strstr(header, "content-length: ");
+            if (s != NULL) {
+                // tách content-length
+                contentLength = s + 16;
+                // tìm vị trí của \r\n
+                char *t = strstr(contentLength, "\r\n");
+                if (t != NULL) {
+                    strncpy(contentLength, contentLength, t - contentLength);
+                }
+            }
         }
+        // Chuyển content-length từ string sang int
+        int length = atoi(contentLength);
+
+        downloadFileCLength(fileName, body, iResult, length);
+    }
+}
+
+int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResult, int length)
+{
+    FILE *f = fopen(fileName, "wb");
+    if (f == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(1);
     }
 
-    // Chuyển content-length từ string sang int
-    int length = atoi(contentLength);
-
     // mở file để ghi
-    int n = iResult - (body - recvbuf);
-    fwrite(body, 1, n, f);
-    length -= n;
+    fwrite(recvbuf, 1, iResult, f);
+    length -= iResult;
 
     // tiếp tục nhận dữ liệu
     while (length > 0 && iResult > 0) {
@@ -169,24 +180,13 @@ int clientSocket::downloadFileCLength( char *fileName)
     
 }
 
-int clientSocket::downloadFileChunked( char *fileName) {
+int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResult) {
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
     {
         printf("Error opening file!\n");
         exit(1);
     }
-    int iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-    printf("\n\niResult: %d\n", iResult);
-    // printf("\nDATA: \n%s\n", recvbuf);
-
-    // khai báo biến để lưu header, body
-    char *header = (char *)malloc(DEFAULT_BUFLEN);
-    char *body = (char *)malloc(DEFAULT_BUFLEN);
-    memset(body, '\0', sizeof(body));
-    
-    // tách header, body từ response
-    splitResponse(recvbuf, header, body);
 
     // khai báo biến lưu chunk size và con trỏ tới chunk data
     char *chunkSize = (char *)malloc(1024);
@@ -194,25 +194,16 @@ int clientSocket::downloadFileChunked( char *fileName) {
     memset(chunkSize, '\0', 1024);
     memset(chunkData, '\0', sizeof(DEFAULT_BUFLEN));
 
-    cout << "\nsize of header: " << strlen(header) << endl;
-
     int data = 0;
     bool crlfShortage = 0;
     int size = 0;
-    iResult = iResult - (body - recvbuf);
-    strcpy(recvbuf, body);
-    cout << "header: " << header << endl;
-    cout << "body: " << body << endl;
-    printf("\n\nDATA: \n%s\n", recvbuf);
 
     while (iResult > 0 && size != -1) {
         do {
-            printf("\n\niResult: %d\n", iResult);
             if (size == 0) {
                 // Nếu data != 0 :
                 if (data != 0) {
                     if (crlfShortage) {
-                        cout << "crlfShortage" << endl;
                         strcat(chunkData, recvbuf);
                         strcpy(recvbuf, chunkData);
                         recvbuf += 2;
@@ -226,7 +217,6 @@ int clientSocket::downloadFileChunked( char *fileName) {
                         crlfShortage = false;
                         memset(chunkData, '\0', sizeof(chunkData));
                     } else {
-                        cout << "data != 0" << endl;
                         strcat(chunkData, recvbuf);
                         strcpy(recvbuf, chunkData);
                         iResult += data;
@@ -245,12 +235,9 @@ int clientSocket::downloadFileChunked( char *fileName) {
                     if (s != NULL) {
                         strncpy(chunkSize, chunkSize, s - chunkSize);
                     }
-                    printf("\n\nchunkSize: %s\n", chunkSize);
                     size = strtol(chunkSize, NULL, 16);
-                    cout << "size: " << size << endl;
                     memset(chunkSize, '\0', 1024);
                     if (size == 0) {
-                        printf("\n\nline: 215\n");
                         size = -1;
                         break;
                     }
@@ -276,16 +263,14 @@ int clientSocket::downloadFileChunked( char *fileName) {
                         size -= iResult;
                         memset(recvbuf, '\0', DEFAULT_BUFLEN);
                         iResult = 0;
-                        cout << "\nline 273\n";
                     }
                 } else { // nếu size = 0 mà không tìm thấy \r\n
                     strcpy(chunkData, recvbuf);
                     data = iResult;
                     memset(recvbuf, '\0', DEFAULT_BUFLEN);
-                    cout << "\nline 280\n";
                     break;
                 }
-            } else { // size != 0
+            } else { // size > 0
                 if (iResult >= size) {
                     fwrite(recvbuf, 1, size, f);
                     iResult = iResult - size;
@@ -297,7 +282,6 @@ int clientSocket::downloadFileChunked( char *fileName) {
                         strcpy(chunkData, recvbuf + size);
                         data = iResult;
                         iResult = 0;
-                        cout << "\nline 294\n";
                     }
                     size = 0;
                 } else {
@@ -307,15 +291,12 @@ int clientSocket::downloadFileChunked( char *fileName) {
                     iResult = 0;
                 }
             }
-            printf("\n\nsize: %d\n", size);
-            printf("\n\niResult: %d\n", iResult);
 
         } while (iResult > 0 ); 
 
         if (size != -1) {
             memset(recvbuf, '\0', DEFAULT_BUFLEN);
             iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-            printf("\n\nDATA: \n%s\n", recvbuf);
         }
     }
 
@@ -338,7 +319,7 @@ int clientSocket::downloadFolder(char *folderName)
     strcpy(fileName, folderName);
     strcat(fileName, "\\index.html");
 
-    downloadFileCLength(fileName);
+    downloadFile(fileName);
 
 
     
