@@ -80,9 +80,12 @@ void splitResponse(char *response, char *&header, char *&body) {
     char *p = strstr(response, "\r\n\r\n");
     if (p != NULL) {
         // tách header
-        header = response;
+        strncpy(header, response, p - response);
         // tách body
         body = p + 4;
+        *p = '\0';
+    } else {
+        printf("Khong co header");
+        exit(1);
     }
-    *p = '\0';
 }

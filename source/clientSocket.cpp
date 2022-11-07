@@ -177,7 +177,7 @@ int clientSocket::downloadFileChunked( char *fileName) {
         exit(1);
     }
     int iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-    printf("\n\nỉResult: %d\n", iResult);
+    printf("\n\niResult: %d\n", iResult);
     // printf("\nDATA: \n%s\n", recvbuf);
 
     // khai báo biến để lưu header, body
@@ -194,17 +194,49 @@ int clientSocket::downloadFileChunked( char *fileName) {
     memset(chunkSize, '\0', 1024);
     memset(chunkData, '\0', sizeof(DEFAULT_BUFLEN));
 
+    cout << "\nsize of header: " << strlen(header) << endl;
+
+    int data = 0;
+    bool crlfShortage = 0;
     int size = 0;
     iResult = iResult - (body - recvbuf);
     strcpy(recvbuf, body);
+    cout << "header: " << header << endl;
+    cout << "body: " << body << endl;
+    printf("\n\nDATA: \n%s\n", recvbuf);
 
     while (iResult > 0 && size != -1) {
         do {
             printf("\n\niResult: %d\n", iResult);
             if (size == 0) {
+                // Nếu data != 0 :
+                if (data != 0) {
+                    if (crlfShortage) {
+                        cout << "crlfShortage" << endl;
+                        strcat(chunkData, recvbuf);
+                        strcpy(recvbuf, chunkData);
+                        recvbuf += 2;
+                        if (data == 2) {
+                            iResult -= 2;
+                            data = 0;
+                        } else {
+                            iResult -= 1;
+                            data = 0;
+                        }
+                        crlfShortage = false;
+                        memset(chunkData, '\0', sizeof(chunkData));
+                    } else {
+                        cout << "data != 0" << endl;
+                        strcat(chunkData, recvbuf);
+                        strcpy(recvbuf, chunkData);
+                        iResult += data;
+                        data = 0;
+                        memset(chunkData, '\0', sizeof(chunkData));
+                    }
+                }
+
                 // tìm vị trí của \r\n
                 char *t = strstr(recvbuf, "\r\n");
-                // printf("\n\nDATA: \n\n%s\n\n", recvbuf);
                 if (t != NULL) {
                     strncpy(chunkSize, recvbuf, t - recvbuf);
 
@@ -215,47 +247,64 @@ int clientSocket::downloadFileChunked( char *fileName) {
                     }
                     printf("\n\nchunkSize: %s\n", chunkSize);
                     size = strtol(chunkSize, NULL, 16);
+                    cout << "size: " << size << endl;
                     memset(chunkSize, '\0', 1024);
                     if (size == 0) {
                         printf("\n\nline: 215\n");
                         size = -1;
                         break;
                     }
-                    chunkData = t + 2;
-                    iResult = iResult - (chunkData - recvbuf);
-                    recvbuf = chunkData;
+                    t += 2;
+                    iResult = iResult - (t - recvbuf);
+                    strcpy(recvbuf, t);
 
                     if (iResult >= size) {
-                        fwrite(chunkData, 1, size, f);
+                        fwrite(recvbuf, 1, size, f);
                         iResult = iResult - size;
-                        recvbuf = recvbuf + size + 2;
+                        if (iResult >= 2) {
+                            iResult = iResult - 2;
+                            strcpy(recvbuf, recvbuf + size + 2);
+                        } else {
+                            crlfShortage = true;
+                            strcpy(chunkData, recvbuf + size);
+                            data = iResult;
+                            iResult = 0;
+                        }
                         size = 0;
-                        printf("\n\nline: 228\n");
                     } else {
-                        fwrite(chunkData, 1, iResult, f);
+                        fwrite(recvbuf, 1, iResult, f);
                         size -= iResult;
                         memset(recvbuf, '\0', DEFAULT_BUFLEN);
                         iResult = 0;
-                        printf("\n\nline: 236\n");
+                        cout << "\nline 273\n";
                     }
-                } else {
-                    printf("\n\nline: 240\n");
-                    size = -1;
+                } else { // nếu size = 0 mà không tìm thấy \r\n
+                    strcpy(chunkData, recvbuf);
+                    data = iResult;
+                    memset(recvbuf, '\0', DEFAULT_BUFLEN);
+                    cout << "\nline 280\n";
                     break;
                 }
-            } else {
+            } else { // size != 0
                 if (iResult >= size) {
                     fwrite(recvbuf, 1, size, f);
                     iResult = iResult - size;
-                    recvbuf = recvbuf + size + 2;
+                    if (iResult >= 2) {
+                        iResult = iResult - 2;
+                        strcpy(recvbuf, recvbuf + size + 2);
+                    } else {
+                        crlfShortage = true;
+                        strcpy(chunkData, recvbuf + size);
+                        data = iResult;
+                        iResult = 0;
+                        cout << "\nline 294\n";
+                    }
                     size = 0;
-                    printf("\n\nline: 245\n");
                 } else {
                     fwrite(recvbuf, 1, iResult, f);
                     size -= iResult;
                     memset(recvbuf, '\0', DEFAULT_BUFLEN);
                     iResult = 0;
-                    printf("\n\nline: 253\n");
                 }
             }
             printf("\n\nsize: %d\n", size);
@@ -266,6 +315,7 @@ int clientSocket::downloadFileChunked( char *fileName) {
         if (size != -1) {
             memset(recvbuf, '\0', DEFAULT_BUFLEN);
             iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+            printf("\n\nDATA: \n%s\n", recvbuf);
         }
     }
 
