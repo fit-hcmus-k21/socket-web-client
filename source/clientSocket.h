@@ -32,7 +32,7 @@ public:
     int sendRequest(char *request);
 
     // download file
-    void downloadFile(char *fileName);
+    void downloadFile(char *fileName, char *host, char *path);
 
     // download and save file type content-length
     int downloadFileCLength(char *fileName, char *recvbuf, int iResult, int length);
@@ -41,7 +41,7 @@ public:
     int downloadFileChunked( char *fileName, char *recvbuf, int iResult);
 
     // download all file of folder
-    int downloadFolder(char *folderName);
+    int downloadFolder(char *folderName, char *host, char *path);
 
     // multiple request
     int multipleRequest(char *serverName, char *fileName);

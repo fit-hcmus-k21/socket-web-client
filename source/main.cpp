@@ -34,14 +34,6 @@ int __cdecl main(int argc, char **argv) {
     client.init();
     client.connectToServer(host);
 
-    char *request = (char *)malloc(100);
-    request = client.createRequest(host, path);
-    client.sendRequest(request);
-
-    printf("Host: %s\n", host);
-    printf("File: %s\n", fileName);
-    printf("request: %s\n", request);
-
     char *dir = (char *)malloc(100);
     strcpy(dir, "releases\\");
 
@@ -50,12 +42,12 @@ int __cdecl main(int argc, char **argv) {
         // chỉnh tên file theo cấu trúc: host_fileName, lưu vào folder releases
         char *newFileName = createNewFName(fileName, host, dir);
 
-        client.downloadFile(newFileName);
+        client.downloadFile(newFileName, host, path);
     } else {
         // nếu là folder: chỉnh tên folder theo cấu trúc: host_folderName, lưu vào folder releases
         char *newFolderName = createNewFName(folderName, host, dir);
 
-        client.downloadFolder(newFolderName);
+        client.downloadFolder(newFolderName, host, path);
     }
 
     client.closeConnection();

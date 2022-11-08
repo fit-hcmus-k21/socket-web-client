@@ -100,7 +100,16 @@ int clientSocket::sendRequest(char *request)
     return 0;
 }
 
-void clientSocket::downloadFile(char *fileName) {
+void clientSocket::downloadFile(char *fileName, char *host, char *path) {
+
+    char *request = (char *)malloc(100);
+    request = createRequest(host, path);
+    sendRequest(request);
+
+    printf("Host: %s\n", host);
+    printf("File: %s\n", fileName);
+    printf("request: %s\n", request);
+
     int iResult;
     memset(recvbuf, 0, DEFAULT_BUFLEN);
     iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
@@ -304,7 +313,7 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
     return 225;   
 }
 
-int clientSocket::downloadFolder(char *folderName)
+int clientSocket::downloadFolder(char *folderName, char *host, char *path)
 {
     // tạo thư mục
     if (mkdir(folderName) == -1) 
@@ -319,10 +328,52 @@ int clientSocket::downloadFolder(char *folderName)
     strcpy(fileName, folderName);
     strcat(fileName, "\\index.html");
 
-    downloadFile(fileName);
+    downloadFile(fileName, host, path);
 
+    // lọc các link trong file index.html và lưu vào vector link
+    vector<char *> link;
+    FILE *f = fopen(fileName, "r");
+    if (f == NULL)
+    {
+        printf("Error opening file! \n");
+        exit(1);
+    }
 
-    
+    char *line = (char *)malloc(1024);
+    memset(line, '\0', 1024);
+    // tìm trong file index.html các link có dạng <a href="link">...</a>
+    while (fgets(line, 1024, f) != NULL) {
+        char *t = strstr(line, "<a href=\"");
+        if (t != NULL) {
+            t += 9;
+            char *s = strstr(t, "\">");
+            if (s != NULL) {
+                char *linkName = (char *)malloc(1024);
+                memset(linkName, '\0', 1024);
+                strncpy(linkName, t, s - t);
+                
+                // nếu link là file
+                if (strstr(linkName, ".") != NULL) {
+                    link.push_back(linkName);
+                }
+            }
+        }
+    }
+
+    // tải các file trong link
+    for (int i = 0; i < link.size(); i++) {
+        char *fileName = (char *)malloc(1024);
+        memset(fileName, '\0', 1024);
+        strcpy(fileName, folderName);
+        strcat(fileName, "\\");
+        strcat(fileName, link[i]);
+
+        downloadFile(fileName, host, path);
+    }
+
+    //  đóng file
+    fclose(f);
+
     return 225;
 }
 
