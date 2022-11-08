@@ -121,6 +121,9 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     memset(body, '\0', sizeof(body));
 
     // tách header và body
+
+    printf("\n\nResponse: %s\n\n", recvbuf);
+
     splitResponse(recvbuf, header, body);
     iResult = iResult - (body - recvbuf);
 
@@ -368,7 +371,13 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
         strcat(fileName, "\\");
         strcat(fileName, link[i]);
 
-        downloadFile(fileName, host, path);
+        // tạo đường dẫn tới file
+        char *newPath = (char *)malloc(1024);
+        memset(newPath, '\0', 1024);
+        strcpy(newPath, path);
+        strcat(newPath, link[i]);
+
+        downloadFile(fileName, host, newPath);
     }
 
     //  đóng file
