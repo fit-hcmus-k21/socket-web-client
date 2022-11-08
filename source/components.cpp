@@ -70,7 +70,11 @@ void getFileName(char *path, char *&fileName, char *&folderName) {
 
     } else {
         // nếu path là /file
-        fileName = path + 1;
+        strcpy(fileName, path + 1);
+        if (strstr(fileName, ".") == NULL) {
+            // nếu file không có đuôi
+            strcat(fileName, ".html");
+        }
     }
 }
 
@@ -88,4 +92,24 @@ void splitResponse(char *response, char *&header, char *&body) {
         printf("Khong co header");
         exit(1);
     }
+}
+
+// hàm tách các tham số truyền vào từ command line ra vector các link
+void splitLink(char *link, vector<char *> &linkList) {
+    char *p = strtok(link, " ");
+    while (p != NULL) {
+        linkList.push_back(p);
+        p = strtok(NULL, " ");
+    }
+}
+
+// hàm chỉnh tên file/folder lưu vào directory
+char* createNewFName (char *fname, char *host, char *dir) {
+    char *newFName = (char *)malloc(100);
+    memset(newFName, '\0', 100);
+    strcat(newFName, dir);
+    strcat(newFName, host);
+    strcat(newFName, "_");
+    strcat(newFName, fname);
+    return newFName;
 }

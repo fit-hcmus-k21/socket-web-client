@@ -6,9 +6,10 @@
 
 int __cdecl main(int argc, char **argv) {
     // validate the parameters
-    if (argc != 2) {
+    if (argc < 2) {
         printf("usage: %s server-name\n", argv[0]);
         return 1;
+    } else {
     }
 
     // Tách host và path từ url
@@ -41,31 +42,18 @@ int __cdecl main(int argc, char **argv) {
     printf("File: %s\n", fileName);
     printf("request: %s\n", request);
 
-    /*
-        tách header để biết download dạng contentLength hay chunked
-        nếu tìm trong header không thấy "Content-Length" thì download dạng chunked
-        ngược lại là transfer encoding : chunked
-    */
+    char *dir = (char *)malloc(100);
+    strcpy(dir, "releases\\");
 
     // nếu là file 
     if (strlen(fileName) > 0) {
         // chỉnh tên file theo cấu trúc: host_fileName, lưu vào folder releases
-        char *newFileName = (char *)malloc(100);
-        memset(newFileName, '\0', 100);
-        strcat(newFileName, "releases\\");
-        strcat(newFileName, host);
-        strcat(newFileName, "_");
-        strcat(newFileName, fileName);
+        char *newFileName = createNewFName(fileName, host, dir);
 
         client.downloadFile(newFileName);
     } else {
         // nếu là folder: chỉnh tên folder theo cấu trúc: host_folderName, lưu vào folder releases
-        char *newFolderName = (char *)malloc(100);
-        memset(newFolderName, '\0', 100);
-        strcat(newFolderName, "releases\\");
-        strcat(newFolderName, host);
-        strcat(newFolderName, "_");
-        strcat(newFolderName, folderName);
+        char *newFolderName = createNewFName(folderName, host, dir);
 
         client.downloadFolder(newFolderName);
     }
