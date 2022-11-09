@@ -33,6 +33,7 @@
 /source/test/*.exe
 /demo/web_client/Debug/*.exe
 /demo/web_client/web_client/*.exe
+/test/*.exe
 
 *.out
 *.app
