@@ -80,7 +80,7 @@ char *clientSocket::createRequest(char *host, char *path) {
     // Send an initial buffer
     int iResult;
     char *request = (char *)malloc(1024);
-    sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\n\r\n", path, host);
+    sprintf(request, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: %s\r\n\r\n", path, host, "keep-alive");
     return request;
 }
 
@@ -121,9 +121,6 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     memset(body, '\0', sizeof(body));
 
     // tách header và body
-
-    printf("\n\nResponse: %s\n\n", recvbuf);
-
     splitResponse(recvbuf, header, body);
     iResult = iResult - (body - recvbuf);
 
@@ -204,10 +201,10 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
     char *chunkSize = (char *)malloc(1024);
     char *chunkData = (char *)malloc(DEFAULT_BUFLEN);
     memset(chunkSize, '\0', 1024);
-    memset(chunkData, '\0', sizeof(DEFAULT_BUFLEN));
+    memset(chunkData, '\0', DEFAULT_BUFLEN);
 
     int data = 0;
-    bool crlfShortage = 0;
+    bool crlfShortage = false;
     int size = 0;
 
     while (iResult > 0 && size != -1) {
@@ -216,30 +213,26 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
                 // Nếu data != 0 :
                 if (data != 0) {
                     if (crlfShortage) {
-                        strcat(chunkData, recvbuf);
-                        strcpy(recvbuf, chunkData);
-                        recvbuf += 2;
-                        if (data == 2) {
-                            iResult -= 2;
-                            data = 0;
-                        } else {
+                        if (data == 1 ) {
+                            recvbuf += 1;
                             iResult -= 1;
-                            data = 0;
+                        } else {
+                            recvbuf += 2;
+                            iResult -= 2;
                         }
                         crlfShortage = false;
-                        memset(chunkData, '\0', sizeof(chunkData));
                     } else {
                         strcat(chunkData, recvbuf);
-                        strcpy(recvbuf, chunkData);
+                        memmove(recvbuf, chunkData, iResult + data);
                         iResult += data;
                         data = 0;
-                        memset(chunkData, '\0', sizeof(chunkData));
                     }
                 }
 
                 // tìm vị trí của \r\n
                 char *t = strstr(recvbuf, "\r\n");
                 if (t != NULL) {
+                    memset(chunkSize, '\0', 1024);
                     strncpy(chunkSize, recvbuf, t - recvbuf);
 
                     // bỏ qua chunk extension cách bởi dấu ; nếu có
@@ -248,24 +241,24 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
                         strncpy(chunkSize, chunkSize, s - chunkSize);
                     }
                     size = strtol(chunkSize, NULL, 16);
-                    memset(chunkSize, '\0', 1024);
                     if (size == 0) {
                         size = -1;
+                        cout << "\nsize == -1\n";
                         break;
                     }
                     t += 2;
+                    
                     iResult = iResult - (t - recvbuf);
-                    strcpy(recvbuf, t);
+                    recvbuf = t;
 
                     if (iResult >= size) {
                         fwrite(recvbuf, 1, size, f);
                         iResult = iResult - size;
                         if (iResult >= 2) {
                             iResult = iResult - 2;
-                            strcpy(recvbuf, recvbuf + size + 2);
+                            memcpy(recvbuf, recvbuf + size + 2, iResult);
                         } else {
                             crlfShortage = true;
-                            strcpy(chunkData, recvbuf + size);
                             data = iResult;
                             iResult = 0;
                         }
@@ -277,7 +270,8 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
                         iResult = 0;
                     }
                 } else { // nếu size = 0 mà không tìm thấy \r\n
-                    strcpy(chunkData, recvbuf);
+                    memset(chunkData, '\0', DEFAULT_BUFLEN);
+                    memmove(chunkData, recvbuf, iResult);
                     data = iResult;
                     memset(recvbuf, '\0', DEFAULT_BUFLEN);
                     break;
@@ -288,10 +282,9 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
                     iResult = iResult - size;
                     if (iResult >= 2) {
                         iResult = iResult - 2;
-                        strcpy(recvbuf, recvbuf + size + 2);
+                        recvbuf += size + 2;
                     } else {
                         crlfShortage = true;
-                        strcpy(chunkData, recvbuf + size);
                         data = iResult;
                         iResult = 0;
                     }
@@ -386,13 +379,11 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
     return 225;
 }
 
-int clientSocket::multipleRequest(char *serverName, char *fileName)
-{
+int clientSocket::multipleRequest(char *requests, char *host, char *path) {
     
-}
 
-int clientSocket::multipleConnection(char *serverName, char *fileName)
-{
+}
+int clientSocket::multipleConnection(char *serverName, char *fileName) {
     
 }
 

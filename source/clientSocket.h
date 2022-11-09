@@ -44,7 +44,7 @@ public:
     int downloadFolder(char *folderName, char *host, char *path);
 
     // multiple request
-    int multipleRequest(char *serverName, char *fileName);
+    int multipleRequest(char *requests, char *host, char *path);
 
     // multiple connection
     int multipleConnection(char *serverName, char *fileName);
