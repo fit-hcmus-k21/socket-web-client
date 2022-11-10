@@ -8,6 +8,12 @@ clientSocket::clientSocket()
 
 clientSocket::~clientSocket()
 {
+    free(recvbuf);
+}
+
+bool clientSocket::isConnectionClosed()
+{
+    return isClosed;
 }
 
 int clientSocket::init() 
@@ -67,6 +73,7 @@ int clientSocket::connectToServer(char *serverName)
     }
 
     freeaddrinfo(result);
+    freeaddrinfo(ptr);
 
     if (ConnectSocket == INVALID_SOCKET) {
         printf("Unable to connect to server!\n");
@@ -124,9 +131,17 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     splitResponse(recvbuf, header, body);
     iResult = iResult - (body - recvbuf);
 
+    // kiểm tra connection close hay keep-alive
+    if (strstr(header, "Connection: close") != NULL) {
+        isKeepAlive = false;
+    } else {
+        isKeepAlive = true;
+    }
+
+    // nếu header có cả transfer encoding và content length thì content length sẽ bị ignore
     // tìm trong header xem có chunked hay không
     if (strstr(header, "chunked") != NULL) {
-        downloadFileChunked(fileName, body, iResult);
+        downloadFileChunked(fileName, body, iResult, isKeepAlive);
     } else {
         // tìm trong header để lấy size content
         char *contentLength = (char *) malloc(1024);
@@ -157,11 +172,11 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
         // Chuyển content-length từ string sang int
         int length = atoi(contentLength);
 
-        downloadFileCLength(fileName, body, iResult, length);
+        downloadFileCLength(fileName, body, iResult, length, isKeepAlive);
     }
 }
 
-int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResult, int length)
+int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResult, int length, bool isKeepAlive)
 {
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
@@ -184,12 +199,19 @@ int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResul
 
     // đóng file
     fclose(f);
+
+    if (isKeepAlive) {
+        isClosed = false;
+    } else {
+        closeConnection();
+        isClosed = true;
+    }
         
     return 0;
     
 }
 
-int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResult) {
+int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResult, bool isKeepAlive) {
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
     {
@@ -306,6 +328,14 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
     }
 
     fclose(f);
+    
+    if (isKeepAlive) {
+        isClosed = false;
+    } else {
+        closeConnection();
+        isClosed = true;
+    }
+
     return 225;   
 }
 
@@ -327,7 +357,7 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
     downloadFile(fileName, host, path);
 
     // lọc các link trong file index.html và lưu vào vector link
-    vector<char *> link;
+    vector<char *> links;
     FILE *f = fopen(fileName, "r");
     if (f == NULL)
     {
@@ -337,6 +367,7 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
 
     char *line = (char *)malloc(1024);
     memset(line, '\0', 1024);
+
     // tìm trong file index.html các link có dạng <a href="link">...</a>
     while (fgets(line, 1024, f) != NULL) {
         char *t = strstr(line, "<a href=\"");
@@ -350,38 +381,39 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
                 
                 // nếu link là file
                 if (strstr(linkName, ".") != NULL) {
-                    link.push_back(linkName);
+                    links.push_back(linkName);
                 }
             }
         }
     }
 
     // tải các file trong link
-    for (int i = 0; i < link.size(); i++) {
+    for (int i = 0; i < links.size(); i++) {
         char *fileName = (char *)malloc(1024);
         memset(fileName, '\0', 1024);
         strcpy(fileName, folderName);
         strcat(fileName, "\\");
-        strcat(fileName, link[i]);
+        strcat(fileName, links[i]);
 
         // tạo đường dẫn tới file
         char *newPath = (char *)malloc(1024);
         memset(newPath, '\0', 1024);
         strcpy(newPath, path);
-        strcat(newPath, link[i]);
+        strcat(newPath, links[i]);
 
         downloadFile(fileName, host, newPath);
     }
 
     //  đóng file
     fclose(f);
+    
 
     return 225;
 }
 
-int clientSocket::multipleRequest(char *requests, char *host, char *path) {
-    
+int clientSocket::multipleRequest(vector <char*> links, char *host, char *path) {
 
+ 
 }
 int clientSocket::multipleConnection(char *serverName, char *fileName) {
     
@@ -405,3 +437,5 @@ int clientSocket::closeConnection()
 
     return 0;
 }
+
+

@@ -43,14 +43,17 @@ int __cdecl main(int argc, char **argv) {
         char *newFileName = createNewFName(fileName, host, dir);
 
         client.downloadFile(newFileName, host, path);
+
     } else {
         // nếu là folder: chỉnh tên folder theo cấu trúc: host_folderName, lưu vào folder releases
         char *newFolderName = createNewFName(folderName, host, dir);
 
         client.downloadFolder(newFolderName, host, path);
     }
-
-    client.closeConnection();
+    
+    if (!client.isConnectionClosed()) {
+        client.closeConnection();
+    }
 
     return 225;
 

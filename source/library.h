@@ -1,8 +1,12 @@
-#include "clientSocket.h"
-#include <direct.h>
-
 #include <bits/stdc++.h>
 using namespace std;
+
+#include "clientSocket.h"
+#include "pthread.h"
+
+#include <direct.h>
+
+
 
 // tách host và path từ url
 void splitPath(char *url, char *&host, char *&path) ;
@@ -13,7 +17,7 @@ void getFileName(char *path, char *&fileName, char *&folderName) ;
 // tách header, body từ response
 void splitResponse(char *response, char *&header, char *&body) ;
 
-// hàm tách các tham số truyền vào từ command line ra vector các link
+// hàm tách các thPm số truyền vào từ command line ra vector các link
 void splitLink(char *link, vector<char *> &linkList) ;
 
 // hàm chỉnh tên file/folder lưu vào directory
