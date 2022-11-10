@@ -25,6 +25,9 @@ public:
     // Connect to server
     int connectToServer(char *serverName); 
 
+    // handle request
+    void handleRequest(char *host, char *path, char *fileName, char *folderName, char *dir);
+
     // create request
     char *createRequest(char *host, char *path);   
 

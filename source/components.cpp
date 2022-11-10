@@ -113,3 +113,74 @@ char* createNewFName (char *fname, char *host, char *dir) {
     strcat(newFName, fname);
     return newFName;
 }
+
+// xử lý thông tin từ input và trả về thông tin cần thiết
+void processInput(char *url, char *&host, char *&path, char *&fileName, char *&folderName) {
+    // memset các biến
+    memset(path, '\0', 100);
+    memset(host, '\0', 100);
+    memset(fileName, '\0', 100);
+    memset(folderName, '\0', 100);
+
+    // tách host và path từ url
+    splitPath(url, host, path);
+
+    // tách fileName và folderName từ path
+    getFileName(path, fileName, folderName);
+
+}
+
+// handle a connection
+void *handleConnection(char *url){
+    // khai báo các biến
+    char *path = (char *)malloc(100);
+    char *host = (char *)malloc(100);
+    char *fileName = (char *)malloc(100);
+    char *folderName = (char *)malloc(100);
+    char *dir = (char *)malloc(100);
+    strcpy(dir, "releases\\");
+
+    // xử lý url
+    processInput(url, host, path, fileName, folderName);
+
+    clientSocket client = clientSocket();
+    client.init();
+    client.connectToServer(host);
+    client.handleRequest(host, path, fileName, folderName, dir);
+    
+    // đóng socket nếu chưa đóng
+    if (!client.isConnectionClosed()) {
+        client.closeConnection();
+    }
+
+    // giải phóng bộ nhớ
+    free(path);
+    free(host);
+    free(fileName);
+    free(folderName);
+    free(dir);
+
+    return NULL;
+}
+
+// handle multiple connection
+void *handleMultipleConnection(int n, char **urls) {
+    // khai báo các biến
+    pthread_t *threads = (pthread_t *)malloc(n * sizeof(pthread_t));
+
+    // tạo nhiều thread để xử lý nhiều url
+    for (int i = 0; i < n; i++) {
+        pthread_create(&threads[i], NULL, (void *(*)(void *))handleConnection, urls[i]);
+    }
+
+    // join các thread
+    for (int i = 0; i < n; i++) {
+        pthread_join(threads[i], NULL);
+    }
+
+    // giải phóng bộ nhớ
+    free(threads);
+
+    return NULL;
+    
+}

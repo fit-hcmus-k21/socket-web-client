@@ -83,6 +83,23 @@ int clientSocket::connectToServer(char *serverName)
     return 0;
 }
 
+void clientSocket::handleRequest(char *host, char *path, char *fileName, char *folderName, char *dir) {
+    // nếu là file 
+    if (strlen(fileName) > 0) {
+        // chỉnh tên file theo cấu trúc: host_fileName, lưu vào dir releases
+        char *newFileName = createNewFName(fileName, host, dir);
+
+        downloadFile(newFileName, host, path);
+
+    } else {
+        // nếu là folder: chỉnh tên folder theo cấu trúc: host_folderName, lưu vào dir releases
+        char *newFolderName = createNewFName(folderName, host, dir);
+
+        downloadFolder(newFolderName, host, path);
+    }
+}
+
+
 char *clientSocket::createRequest(char *host, char *path) {
     // Send an initial buffer
     int iResult;
