@@ -144,14 +144,8 @@ void *handleConnection(char *url){
     processInput(url, host, path, fileName, folderName);
 
     clientSocket client = clientSocket();
-    client.init();
     client.connectToServer(host);
     client.handleRequest(host, path, fileName, folderName, dir);
-    
-    // đóng socket nếu chưa đóng
-    if (!client.isConnectionClosed()) {
-        client.closeConnection();
-    }
 
     // giải phóng bộ nhớ
     free(path);

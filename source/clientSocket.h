@@ -16,11 +16,11 @@
 class clientSocket
 {
 public:
-    clientSocket();
-    ~clientSocket();
-
     // Initialize Winsock
-    int init(); 
+    clientSocket();
+
+    // destructure 
+    ~clientSocket();
 
     // Connect to server
     int connectToServer(char *serverName); 
@@ -38,25 +38,19 @@ public:
     void downloadFile(char *fileName, char *host, char *path);
 
     // download and save file type content-length
-    int downloadFileCLength(char *fileName, char *recvbuf, int iResult, int length, bool isKeepAlive);
+    int downloadFileCLength(char *fileName, char *recvbuf, int iResult, int length);
 
     // download and save file type chunked
-    int downloadFileChunked( char *fileName, char *recvbuf, int iResult, bool isKeepAlive);
+    int downloadFileChunked( char *fileName, char *recvbuf, int iResult);
 
     // download all file of folder
     int downloadFolder(char *folderName, char *host, char *path);
 
     // multiple request
-    int multipleRequest(vector <char*> links, char *host, char *path);
-
-    // multiple connection
-    int multipleConnection(char *serverName, char *fileName);
+    int multipleRequest(vector <char*> links, char *host, char *path, char *folderName);
 
     // Close the socket
-    int closeConnection();
-
-    // check connection is closed
-    bool isConnectionClosed();
+    void closeConnection();
 
 private:
     WSADATA wsaData;
@@ -67,8 +61,7 @@ private:
     struct addrinfo hints;
 
     char *recvbuf = (char *)malloc(DEFAULT_BUFLEN);
-    int recvbuflen;
-
+    
     bool isKeepAlive;
     bool isClosed;
 };

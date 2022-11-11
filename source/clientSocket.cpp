@@ -3,37 +3,31 @@
 clientSocket::clientSocket()
 {
     ConnectSocket = INVALID_SOCKET;
-    recvbuflen = DEFAULT_BUFLEN;
-}
 
-clientSocket::~clientSocket()
-{
-    free(recvbuf);
-}
-
-bool clientSocket::isConnectionClosed()
-{
-    return isClosed;
-}
-
-int clientSocket::init() 
-{
     int iResult;
     // Initialize Winsock
     iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
     if (iResult != 0) {
         printf("WSAStartup failed with error: %d\n", iResult);
-        return 1;
+        exit(225);
     }
-    return 0;
+}
+
+clientSocket::~clientSocket()
+{
+    // free recvbuf
+    free(recvbuf);
+
+    if (!isClosed) {
+        closeConnection();
+    }
+
+    // cleanup
+    WSACleanup();
 }
 
 int clientSocket::connectToServer(char *serverName)
 {
-    // manage the connection
-    u_long iMode = 1;  // 0 = blocking mode, 1 = non-blocking mode
-    ioctlsocket(ConnectSocket, FIONBIO, &iMode); // set non-blocking mode so that the program will not hang
-
     int iResult;
     ZeroMemory( &hints, sizeof(hints) );
     hints.ai_family = AF_UNSPEC;
@@ -41,7 +35,6 @@ int clientSocket::connectToServer(char *serverName)
     hints.ai_protocol = IPPROTO_TCP;
 
     // Resolve the server address and port
-
     iResult = getaddrinfo(serverName, DEFAULT_PORT, &hints, &result);
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
@@ -80,6 +73,11 @@ int clientSocket::connectToServer(char *serverName)
         WSACleanup();
         return 1;
     }
+
+    // manage the connection
+    u_long iMode = 1;  // 0 = blocking mode, 1 = non-blocking mode
+    ioctlsocket(ConnectSocket, FIONBIO, &iMode); // set non-blocking mode so that the program will not hang
+
     return 0;
 }
 
@@ -136,7 +134,7 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
 
     int iResult;
     memset(recvbuf, 0, DEFAULT_BUFLEN);
-    iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+    iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
 
     // khai báo biến để lưu header, body
     char *header = (char *)malloc(DEFAULT_BUFLEN);
@@ -158,7 +156,7 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     // nếu header có cả transfer encoding và content length thì content length sẽ bị ignore
     // tìm trong header xem có chunked hay không
     if (strstr(header, "chunked") != NULL) {
-        downloadFileChunked(fileName, body, iResult, isKeepAlive);
+        downloadFileChunked(fileName, body, iResult);
     } else {
         // tìm trong header để lấy size content
         char *contentLength = (char *) malloc(1024);
@@ -189,11 +187,11 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
         // Chuyển content-length từ string sang int
         int length = atoi(contentLength);
 
-        downloadFileCLength(fileName, body, iResult, length, isKeepAlive);
+        downloadFileCLength(fileName, body, iResult, length);
     }
 }
 
-int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResult, int length, bool isKeepAlive)
+int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResult, int length)
 {
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
@@ -209,7 +207,7 @@ int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResul
     // tiếp tục nhận dữ liệu
     while (length > 0 && iResult > 0) {
         memset(recvbuf, '\0', DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
-        iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+        iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
         fwrite(recvbuf, 1, iResult, f);
         length -= iResult;
     }
@@ -217,6 +215,7 @@ int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResul
     // đóng file
     fclose(f);
 
+    // nếu response từ server có connection close thì đóng connection
     if (isKeepAlive) {
         isClosed = false;
     } else {
@@ -228,7 +227,7 @@ int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResul
     
 }
 
-int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResult, bool isKeepAlive) {
+int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResult) {
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
     {
@@ -340,12 +339,13 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
 
         if (size != -1) {
             memset(recvbuf, '\0', DEFAULT_BUFLEN);
-            iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+            iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
         }
     }
 
     fclose(f);
     
+    // nếu response từ server có connection close thì đóng connection
     if (isKeepAlive) {
         isClosed = false;
     } else {
@@ -404,40 +404,43 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
         }
     }
 
-    // tải các file trong link
-    for (int i = 0; i < links.size(); i++) {
-        char *fileName = (char *)malloc(1024);
-        memset(fileName, '\0', 1024);
-        strcpy(fileName, folderName);
-        strcat(fileName, "\\");
-        strcat(fileName, links[i]);
-
-        // tạo đường dẫn tới file
-        char *newPath = (char *)malloc(1024);
-        memset(newPath, '\0', 1024);
-        strcpy(newPath, path);
-        strcat(newPath, links[i]);
-
-        downloadFile(fileName, host, newPath);
-    }
+    // multiple requests cho các requests tải các file trong folder
+    multipleRequest(links, host, path, folderName);
 
     //  đóng file
     fclose(f);
     
-
     return 225;
 }
 
-int clientSocket::multipleRequest(vector <char*> links, char *host, char *path) {
+int clientSocket::multipleRequest(vector <char*> links, char *host, char *path, char *folderName) {
+        
+        // tạo request đến các trang trong links để tải file
+        for (int i = 0; i < links.size(); i++) {
+            char *fileName = (char *)malloc(1024);
+            memset(fileName, '\0', 1024);
+            strcpy(fileName, folderName);
+            strcat(fileName, "\\");
+            strcat(fileName, links[i]);
 
+            // tạo đường dẫn tới file
+            char *newPath = (char *)malloc(1024);
+            memset(newPath, '\0', 1024);
+            strcpy(newPath, path);
+            strcat(newPath, links[i]);
+
+            // kiểm tra liệu connection đã đóng hay chưa, nếu đã đóng ở lần request trước rồi thì kết nối lại
+            if (isClosed) {
+                connectToServer(host);
+                isClosed = false;
+            }
+
+            downloadFile(fileName, host, newPath);
+    }
  
 }
-int clientSocket::multipleConnection(char *serverName, char *fileName) {
-    
-}
 
-
-int clientSocket::closeConnection()
+void clientSocket::closeConnection()
 {
     // shutdown the connection since no more data will be sent
     int iResult = shutdown(ConnectSocket, SD_SEND);
@@ -445,14 +448,13 @@ int clientSocket::closeConnection()
         printf("shutdown failed with error: %d\n", WSAGetLastError());
         closesocket(ConnectSocket);
         WSACleanup();
-        return 1;
+        exit(225);
     }
 
-    // cleanup
+    // close socket
     closesocket(ConnectSocket);
-    WSACleanup();
+    ConnectSocket = INVALID_SOCKET; 
 
-    return 0;
 }
 
 
