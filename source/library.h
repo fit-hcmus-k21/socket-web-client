@@ -13,7 +13,7 @@ void splitPath(char *url, char *&host, char *&path) ;
 void getFileName(char *path, char *&fileName, char *&folderName) ;
 
 // tách header, body từ response
-void splitResponse(char *response, char *&header, char *&body) ;
+void splitResponse(char *&response, char *&header, char *&body) ;
 
 // hàm tách các thPm số truyền vào từ command line ra vector các link
 void splitLink(char *link, vector<char *> &linkList) ;

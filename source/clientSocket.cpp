@@ -15,18 +15,19 @@ clientSocket::clientSocket()
 
 clientSocket::~clientSocket()
 {
-    // free recvbuf
     free(recvbuf);
 
     if (!isClosed) {
+        printf("\n22 destructure\n");
         closeConnection();
     }
 
     // cleanup
     WSACleanup();
+    cout << "destructured" << endl;
 }
 
-int clientSocket::connectToServer(char *serverName)
+void clientSocket::connectToServer(char *serverName)
 {
     int iResult;
     ZeroMemory( &hints, sizeof(hints) );
@@ -39,7 +40,7 @@ int clientSocket::connectToServer(char *serverName)
     if ( iResult != 0 ) {
         printf("getaddrinfo failed with error: %d\n", iResult);
         WSACleanup();
-        return 1;
+        exit(225);
     }
 
     // Attempt to connect to an address until one succeeds
@@ -52,7 +53,7 @@ int clientSocket::connectToServer(char *serverName)
             printf("socket failed with error: %ld\n", WSAGetLastError());
             freeaddrinfo(result);
             WSACleanup();
-            return 1;
+            exit(225);
         }
 
         // Connect to server.
@@ -71,14 +72,14 @@ int clientSocket::connectToServer(char *serverName)
     if (ConnectSocket == INVALID_SOCKET) {
         printf("Unable to connect to server!\n");
         WSACleanup();
-        return 1;
+        exit(225);
     }
+    printf("Connected to server ! \n");
 
     // manage the connection
-    u_long iMode = 1;  // 0 = blocking mode, 1 = non-blocking mode
-    ioctlsocket(ConnectSocket, FIONBIO, &iMode); // set non-blocking mode so that the program will not hang
-
-    return 0;
+    // u_long iMode = 1;  // 0 = blocking mode, 1 = non-blocking mode
+    // ioctlsocket(ConnectSocket, FIONBIO, &iMode); // set non-blocking mode so that the program will not hang
+    
 }
 
 void clientSocket::handleRequest(char *host, char *path, char *fileName, char *folderName, char *dir) {
@@ -110,7 +111,7 @@ int clientSocket::sendRequest(char *request)
 {
     int iResult;
     // Send an initial buffer
-    iResult = send( ConnectSocket, request, (int)strlen(request), 0 );
+    iResult = send( ConnectSocket, request, (int)strlen(request), 0 );  
     if (iResult == SOCKET_ERROR) {
         printf("send failed with error: %d\n", WSAGetLastError());
         closesocket(ConnectSocket);
@@ -124,7 +125,7 @@ int clientSocket::sendRequest(char *request)
 
 void clientSocket::downloadFile(char *fileName, char *host, char *path) {
 
-    char *request = (char *)malloc(100);
+    char *request;
     request = createRequest(host, path);
     sendRequest(request);
 
@@ -133,18 +134,61 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     printf("request: %s\n", request);
 
     int iResult;
-    memset(recvbuf, 0, DEFAULT_BUFLEN);
-    iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+    memset(recvbuf, '\0', DEFAULT_BUFLEN);
+    while ((iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0)) == SOCKET_ERROR) {
+        int err= WSAGetLastError();
+        printf("recv failed with error: %d\n", err);
+        if (err == WSAEWOULDBLOCK) {  // currently no data available
+            Sleep(100);  // wait and try again: 100ms
+        }
+    }
+
+    // nếu chưa nhận hết header thì tiếp tục nhận
+    if (strstr(recvbuf, "\r\n\r\n") == NULL) {
+        cout << "header not complete" << endl;
+        int n = iResult;
+        char *data = (char *)malloc(n);
+        strcpy(data, recvbuf);
+        while (strstr(data, "\r\n\r\n") == NULL) {
+            iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+            if (iResult == SOCKET_ERROR) {
+                printf("recv failed with error: %d\n", WSAGetLastError());
+                if (WSAGetLastError() == WSAEWOULDBLOCK) {  // currently no data available
+                    Sleep(100);  // wait and try again: 100ms
+                }
+            iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+            }
+            n += iResult;
+            data = (char *)realloc(data, n);
+            strcat(data, recvbuf);
+        }
+        recvbuf = (char *) realloc(recvbuf, n);
+        memmove(recvbuf, data, n);
+        iResult = n;
+    }
+
+    printf("Bytes received: %d\n", iResult);
+    // printf("\nDATA: %s\n\n", recvbuf);
 
     // khai báo biến để lưu header, body
     char *header = (char *)malloc(DEFAULT_BUFLEN);
     memset(header, 0, DEFAULT_BUFLEN);
-    char *body = (char *)malloc(DEFAULT_BUFLEN);
-    memset(body, '\0', sizeof(body));
+    char *body;
 
     // tách header và body
     splitResponse(recvbuf, header, body);
     iResult = iResult - (body - recvbuf);
+    memmove(recvbuf, body, iResult);
+
+    // cout << "Header: " << strlen(header) << endl;
+    cout << "header: " << header << endl;
+    // cout << "recvbuf: " << recvbuf << endl;
+
+    // nếu response header không phải là 200 OK thì thoát
+    if (strstr(header, "200 OK") == NULL) {
+        printf("Response header is not 200 OK\n");
+        exit(1);
+    }
 
     // kiểm tra connection close hay keep-alive
     if (strstr(header, "Connection: close") != NULL) {
@@ -156,7 +200,7 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     // nếu header có cả transfer encoding và content length thì content length sẽ bị ignore
     // tìm trong header xem có chunked hay không
     if (strstr(header, "chunked") != NULL) {
-        downloadFileChunked(fileName, body, iResult);
+        downloadFileChunked(fileName, iResult);
     } else {
         // tìm trong header để lấy size content
         char *contentLength = (char *) malloc(1024);
@@ -166,7 +210,7 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
         char *s = strstr(header, "Content-Length: ");
         if (s != NULL) {
             // tách content-length
-            contentLength = s + 16;
+            strcpy(contentLength, s + 16);
             // tìm vị trí của \r\n
             char *t = strstr(contentLength, "\r\n");
             if (t != NULL) {
@@ -176,7 +220,7 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
             s = strstr(header, "content-length: ");
             if (s != NULL) {
                 // tách content-length
-                contentLength = s + 16;
+                strcpy(contentLength, s + 16);
                 // tìm vị trí của \r\n
                 char *t = strstr(contentLength, "\r\n");
                 if (t != NULL) {
@@ -187,11 +231,11 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
         // Chuyển content-length từ string sang int
         int length = atoi(contentLength);
 
-        downloadFileCLength(fileName, body, iResult, length);
+        downloadFileCLength(fileName, iResult, length);
     }
 }
 
-int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResult, int length)
+int clientSocket::downloadFileCLength( char *fileName, int iResult, int length)
 {
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
@@ -205,9 +249,17 @@ int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResul
     length -= iResult;
 
     // tiếp tục nhận dữ liệu
-    while (length > 0 && iResult > 0) {
+    while (length > 0) {
         memset(recvbuf, '\0', DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
         iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+        while (iResult == SOCKET_ERROR) {
+            int err= WSAGetLastError();
+            printf("recv failed with error: %d\n", err);
+            if (err == WSAEWOULDBLOCK) {  // currently no data available
+            Sleep(100);  // wait and try again: 100ms
+            iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+            }
+        }
         fwrite(recvbuf, 1, iResult, f);
         length -= iResult;
     }
@@ -219,6 +271,7 @@ int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResul
     if (isKeepAlive) {
         isClosed = false;
     } else {
+        cout << "Connection close 273" << endl;
         closeConnection();
         isClosed = true;
     }
@@ -227,7 +280,7 @@ int clientSocket::downloadFileCLength( char *fileName, char *recvbuf, int iResul
     
 }
 
-int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResult) {
+int clientSocket::downloadFileChunked( char *fileName, int iResult) {
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
     {
@@ -237,19 +290,21 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
 
     // khai báo biến lưu chunk size và con trỏ tới chunk data
     char *chunkSize = (char *)malloc(1024);
-    char *chunkData = (char *)malloc(DEFAULT_BUFLEN);
     memset(chunkSize, '\0', 1024);
+    char *chunkData = (char *)malloc(DEFAULT_BUFLEN);
     memset(chunkData, '\0', DEFAULT_BUFLEN);
 
     int data = 0;
     bool crlfShortage = false;
     int size = 0;
 
-    while (iResult > 0 && size != -1) {
+    while (size != -1) {
         do {
             if (size == 0) {
+                // cout << "DATA: " << recvbuf << endl;
                 // Nếu data != 0 :
                 if (data != 0) {
+                    cout << "crlfShortage: " << crlfShortage << endl;
                     if (crlfShortage) {
                         if (data == 1 ) {
                             recvbuf += 1;
@@ -282,19 +337,22 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
                     if (size == 0) {
                         size = -1;
                         cout << "\nsize == -1\n";
+                        cout << "chunkSize: " << chunkSize << endl;
                         break;
                     }
+                    cout << "size = " << size << endl;
+
                     t += 2;
                     
                     iResult = iResult - (t - recvbuf);
-                    recvbuf = t;
+                    memmove(recvbuf, t, iResult);
 
                     if (iResult >= size) {
                         fwrite(recvbuf, 1, size, f);
                         iResult = iResult - size;
                         if (iResult >= 2) {
                             iResult = iResult - 2;
-                            memcpy(recvbuf, recvbuf + size + 2, iResult);
+                            memmove(recvbuf, recvbuf + size + 2, iResult);
                         } else {
                             crlfShortage = true;
                             data = iResult;
@@ -304,14 +362,15 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
                     } else {
                         fwrite(recvbuf, 1, iResult, f);
                         size -= iResult;
-                        memset(recvbuf, '\0', DEFAULT_BUFLEN);
+                        // memset(recvbuf, '\0', DEFAULT_BUFLEN);
                         iResult = 0;
                     }
                 } else { // nếu size = 0 mà không tìm thấy \r\n
+                    cout << "line 335" << endl;
                     memset(chunkData, '\0', DEFAULT_BUFLEN);
                     memmove(chunkData, recvbuf, iResult);
                     data = iResult;
-                    memset(recvbuf, '\0', DEFAULT_BUFLEN);
+                    // memset(recvbuf, '\0', DEFAULT_BUFLEN);
                     break;
                 }
             } else { // size > 0
@@ -320,7 +379,7 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
                     iResult = iResult - size;
                     if (iResult >= 2) {
                         iResult = iResult - 2;
-                        recvbuf += size + 2;
+                        memmove(recvbuf, recvbuf + size + 2, iResult);
                     } else {
                         crlfShortage = true;
                         data = iResult;
@@ -330,7 +389,7 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
                 } else {
                     fwrite(recvbuf, 1, iResult, f);
                     size -= iResult;
-                    memset(recvbuf, '\0', DEFAULT_BUFLEN);
+                    // memset(recvbuf, '\0', DEFAULT_BUFLEN);
                     iResult = 0;
                 }
             }
@@ -342,22 +401,25 @@ int clientSocket::downloadFileChunked( char *fileName, char *recvbuf, int iResul
             iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
         }
     }
-
+    cout << "line 372" << endl;
+    // đóng file
     fclose(f);
-    
+
     // nếu response từ server có connection close thì đóng connection
     if (isKeepAlive) {
         isClosed = false;
     } else {
+        cout << "Connection close 411" << endl;
         closeConnection();
         isClosed = true;
     }
-
+    cout << "line 382" << endl;
     return 225;   
 }
 
 int clientSocket::downloadFolder(char *folderName, char *host, char *path)
 {
+    cout << "downloadFolder" << endl;
     // tạo thư mục
     if (mkdir(folderName) == -1) 
     {
@@ -374,7 +436,6 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
     downloadFile(fileName, host, path);
 
     // lọc các link trong file index.html và lưu vào vector link
-    vector<char *> links;
     FILE *f = fopen(fileName, "r");
     if (f == NULL)
     {
@@ -384,6 +445,8 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
 
     char *line = (char *)malloc(1024);
     memset(line, '\0', 1024);
+    char ** links = (char **)malloc(1024);
+    int linkCount = 0;
 
     // tìm trong file index.html các link có dạng <a href="link">...</a>
     while (fgets(line, 1024, f) != NULL) {
@@ -398,14 +461,18 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
                 
                 // nếu link là file
                 if (strstr(linkName, ".") != NULL) {
-                    links.push_back(linkName);
+                    links[linkCount] = (char *)malloc(1024);
+                    memset(links[linkCount], '\0', 1024);
+                    strcpy(links[linkCount], linkName);
+                    linkCount++;
+                    cout << "link " << linkCount <<": " << linkName << endl;
                 }
             }
         }
     }
 
     // multiple requests cho các requests tải các file trong folder
-    multipleRequest(links, host, path, folderName);
+    multipleRequest(links, linkCount, host, path, folderName);
 
     //  đóng file
     fclose(f);
@@ -413,10 +480,11 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
     return 225;
 }
 
-int clientSocket::multipleRequest(vector <char*> links, char *host, char *path, char *folderName) {
-        
+
+int clientSocket::multipleRequest(char ** links, int linkCount, char *host, char *path, char *folderName) {
+        cout << "multipleRequest" << endl;
         // tạo request đến các trang trong links để tải file
-        for (int i = 0; i < links.size(); i++) {
+        for (int i = 0; i < linkCount; i++) {
             char *fileName = (char *)malloc(1024);
             memset(fileName, '\0', 1024);
             strcpy(fileName, folderName);
@@ -431,7 +499,9 @@ int clientSocket::multipleRequest(vector <char*> links, char *host, char *path, 
 
             // kiểm tra liệu connection đã đóng hay chưa, nếu đã đóng ở lần request trước rồi thì kết nối lại
             if (isClosed) {
+                cout << "closed connection" << endl;
                 connectToServer(host);
+                cout << "connected again" << endl;
                 isClosed = false;
             }
 
@@ -443,7 +513,7 @@ int clientSocket::multipleRequest(vector <char*> links, char *host, char *path, 
 void clientSocket::closeConnection()
 {
     // shutdown the connection since no more data will be sent
-    int iResult = shutdown(ConnectSocket, SD_SEND);
+    int iResult = shutdown(ConnectSocket, SD_BOTH);
     if (iResult == SOCKET_ERROR) {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
         closesocket(ConnectSocket);

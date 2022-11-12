@@ -13,10 +13,12 @@ int __cdecl main(int argc, char **argv) {
     if (argc == 2) {
         // single connection
         handleConnection(argv[1]);
+        cout << "main 16" << endl;
     } else {
         // multiple connection
         handleMultipleConnection(argc, argv);
     }
+    cout << "finished" << endl;
 
     return 225;
 }

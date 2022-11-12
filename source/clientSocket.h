@@ -1,4 +1,4 @@
-
+#undef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501 
 #define WIN32_LEAN_AND_MEAN
 
@@ -23,7 +23,7 @@ public:
     ~clientSocket();
 
     // Connect to server
-    int connectToServer(char *serverName); 
+    void connectToServer(char *serverName); 
 
     // handle request
     void handleRequest(char *host, char *path, char *fileName, char *folderName, char *dir);
@@ -38,16 +38,16 @@ public:
     void downloadFile(char *fileName, char *host, char *path);
 
     // download and save file type content-length
-    int downloadFileCLength(char *fileName, char *recvbuf, int iResult, int length);
+    int downloadFileCLength(char *fileName, int iResult, int length);
 
     // download and save file type chunked
-    int downloadFileChunked( char *fileName, char *recvbuf, int iResult);
+    int downloadFileChunked( char *fileName, int iResult);
 
     // download all file of folder
     int downloadFolder(char *folderName, char *host, char *path);
 
     // multiple request
-    int multipleRequest(vector <char*> links, char *host, char *path, char *folderName);
+    int multipleRequest(char ** links, int linkCount, char *host, char *path, char *folderName);
 
     // Close the socket
     void closeConnection();

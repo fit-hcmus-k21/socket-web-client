@@ -4,16 +4,14 @@
 void splitPath(char *url, char *&host, char *&path) {
     // nếu có http:// thì bỏ đi
     if (strstr(url, "http://") != NULL) {
-        host = url + 7;
+        url += 7;
     } else {
         if (strstr(url, "https://") != NULL) {
-            host = url + 8;
-        } else {
-            host = url;
+            url += 8;
         }
     }
     // tìm vị trí của dấu /
-    char *p = strchr(host, '/');
+    char *p = strchr(url, '/');
     if (p != NULL) {
         // nếu host la example.com/
         if (strlen(p) == 1) {
@@ -25,12 +23,13 @@ void splitPath(char *url, char *&host, char *&path) {
             char *temp = (char *)malloc(100);
             strcpy(temp, "/");
             strcat(temp, path);
-            path = temp;
+            strcpy(path, temp);
         }
         *p = '\0';
     } else {
          strcpy(path, "/");
     }
+    strcpy(host, url);
 }
 
 // lấy fileName/ folderName từ path
@@ -52,7 +51,7 @@ void getFileName(char *path, char *&fileName, char *&folderName) {
         // nếu path là /folder/file
         if (strlen(p) > 1) {
             // tách file
-            fileName = p + 1;
+            strcpy(fileName, p + 1);
         } else {
             // nếu path là /folder/: lấy folder là tên folder
             // tìm từ vị trí p trở về trước cho đên khi tìm thấy dấu /
@@ -79,7 +78,7 @@ void getFileName(char *path, char *&fileName, char *&folderName) {
 }
 
 // tách header, body từ response
-void splitResponse(char *response, char *&header, char *&body) {
+void splitResponse(char *&response, char *&header, char *&body) {
     // tìm vị trí của \r\n\r\n
     char *p = strstr(response, "\r\n\r\n");
     if (p != NULL) {
@@ -148,11 +147,13 @@ void *handleConnection(char *url){
     client.handleRequest(host, path, fileName, folderName, dir);
 
     // giải phóng bộ nhớ
+    cout << "free memory" << endl;
     free(path);
     free(host);
     free(fileName);
     free(folderName);
     free(dir);
+    cout << "free memory done" << endl;
 
     return NULL;
 }
