@@ -16,7 +16,7 @@ int __cdecl main(int argc, char **argv) {
         cout << "main 16" << endl;
     } else {
         // multiple connection
-        handleMultipleConnection(argc, argv);
+        handleMultipleConnection(argc - 1, argv + 1);
     }
     cout << "finished" << endl;
 
