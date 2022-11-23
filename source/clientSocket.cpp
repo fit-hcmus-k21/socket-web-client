@@ -29,9 +29,11 @@ clientSocket::~clientSocket()
 
 void clientSocket::connectToServer(char *serverName)
 {
+    cout << "connecting to server" << endl;
+
     int iResult;
     ZeroMemory( &hints, sizeof(hints) );
-    hints.ai_family = AF_UNSPEC;
+    hints.ai_family = AF_UNSPEC;   
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
@@ -83,6 +85,8 @@ void clientSocket::connectToServer(char *serverName)
 }
 
 void clientSocket::handleRequest(char *host, char *path, char *fileName, char *folderName, char *dir) {
+    cout << "handling request" << endl;
+
     // nếu là file 
     if (strlen(fileName) > 0) {
         // chỉnh tên file theo cấu trúc: host_fileName, lưu vào dir releases
@@ -100,6 +104,8 @@ void clientSocket::handleRequest(char *host, char *path, char *fileName, char *f
 
 
 char *clientSocket::createRequest(char *host, char *path) {
+    cout << "creating request" << endl;
+
     // Send an initial buffer
     int iResult;
     char *request = (char *)malloc(1024);
@@ -109,6 +115,8 @@ char *clientSocket::createRequest(char *host, char *path) {
 
 int clientSocket::sendRequest(char *request)
 {
+    cout << "sending request" << endl;
+
     int iResult;
     // Send an initial buffer
     iResult = send( ConnectSocket, request, (int)strlen(request), 0 );  
@@ -119,17 +127,19 @@ int clientSocket::sendRequest(char *request)
         return 1;
     }
 
-    printf("Bytes Sent: %ld\n", iResult);
+    printf("\n\nBytes Sent: %ld\n", iResult);
     return 0;
 }
 
 void clientSocket::downloadFile(char *fileName, char *host, char *path) {
 
+    cout << "downloading file" << endl;
+
     char *request;
     request = createRequest(host, path);
     sendRequest(request);
 
-    printf("Host: %s\n", host);
+    printf("\nHost: %s\n", host);
     printf("File: %s\n", fileName);
     printf("request: %s\n", request);
 
@@ -146,7 +156,9 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     // nếu chưa nhận hết header thì tiếp tục nhận
     if (strstr(recvbuf, "\r\n\r\n") == NULL) {
         cout << "header not complete" << endl;
+        cout << "header: " << recvbuf << endl;
         int n = iResult;
+        cout << "n: " << n << endl;
         char *data = (char *)malloc(n);
         strcpy(data, recvbuf);
         while (strstr(data, "\r\n\r\n") == NULL) {
@@ -156,7 +168,7 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
                 if (WSAGetLastError() == WSAEWOULDBLOCK) {  // currently no data available
                     Sleep(100);  // wait and try again: 100ms
                 }
-            iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+                iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
             }
             n += iResult;
             data = (char *)realloc(data, n);
@@ -237,6 +249,8 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
 
 int clientSocket::downloadFileCLength( char *fileName, int iResult, int length)
 {
+    cout << "downloading file with content length" << endl;
+
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
     {
@@ -281,6 +295,8 @@ int clientSocket::downloadFileCLength( char *fileName, int iResult, int length)
 }
 
 int clientSocket::downloadFileChunked( char *fileName, int iResult) {
+    cout << "downloading file with chunked" << endl;
+
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
     {
@@ -419,7 +435,8 @@ int clientSocket::downloadFileChunked( char *fileName, int iResult) {
 
 int clientSocket::downloadFolder(char *folderName, char *host, char *path)
 {
-    cout << "downloadFolder" << endl;
+    cout << "downloading folder" << endl;
+
     // tạo thư mục
     if (mkdir(folderName) == -1) 
     {
@@ -482,7 +499,8 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
 
 
 int clientSocket::multipleRequest(char ** links, int linkCount, char *host, char *path, char *folderName) {
-        cout << "multipleRequest" << endl;
+        cout << "multiple request" << endl;
+
         // tạo request đến các trang trong links để tải file
         for (int i = 0; i < linkCount; i++) {
             char *fileName = (char *)malloc(1024);
@@ -512,6 +530,8 @@ int clientSocket::multipleRequest(char ** links, int linkCount, char *host, char
 
 void clientSocket::closeConnection()
 {
+    cout << "closing connection" << endl;
+
     // shutdown the connection since no more data will be sent
     int iResult = shutdown(ConnectSocket, SD_BOTH);
     if (iResult == SOCKET_ERROR) {
