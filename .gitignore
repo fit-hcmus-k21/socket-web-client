@@ -37,3 +37,6 @@
 
 *.out
 *.app
+
+# release folder
+/source/releases
