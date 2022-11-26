@@ -61,8 +61,5 @@ private:
     struct addrinfo hints;
 
     char *recvbuf = (char *)malloc(DEFAULT_BUFLEN);
-    
-    bool isKeepAlive;
-    bool isClosed;
 };
 

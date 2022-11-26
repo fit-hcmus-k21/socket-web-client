@@ -16,11 +16,7 @@ clientSocket::clientSocket()
 clientSocket::~clientSocket()
 {
     free(recvbuf);
-
-    if (!isClosed) {
-        printf("\n22 destructure\n");
-        closeConnection();
-    }
+    closeConnection();
 
     // cleanup
     WSACleanup();
@@ -49,8 +45,7 @@ void clientSocket::connectToServer(char *serverName)
     for(ptr=result; ptr != NULL ;ptr=ptr->ai_next) {
 
         // Create a SOCKET for connecting to server
-        ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, 
-            ptr->ai_protocol);
+        ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
         if (ConnectSocket == INVALID_SOCKET) {
             printf("socket failed with error: %ld\n", WSAGetLastError());
             freeaddrinfo(result);
@@ -150,6 +145,18 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
         printf("recv failed with error: %d\n", err);
         if (err == WSAEWOULDBLOCK) {  // currently no data available
             Sleep(100);  // wait and try again: 100ms
+        } else {
+            return;
+        }
+    }
+
+    if (iResult == 0) {
+        // kiểm tra nếu timeout 
+        int err = WSAGetLastError();
+        if (err == WSAETIMEDOUT || err == WSAENOTCONN) {
+            connectToServer(host);
+            sendRequest(request);
+            iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
         }
     }
 
@@ -157,26 +164,8 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     if (strstr(recvbuf, "\r\n\r\n") == NULL) {
         cout << "header not complete" << endl;
         cout << "header: " << recvbuf << endl;
-        int n = iResult;
-        cout << "n: " << n << endl;
-        char *data = (char *)malloc(n);
-        strcpy(data, recvbuf);
-        while (strstr(data, "\r\n\r\n") == NULL) {
-            iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
-            if (iResult == SOCKET_ERROR) {
-                printf("recv failed with error: %d\n", WSAGetLastError());
-                if (WSAGetLastError() == WSAEWOULDBLOCK) {  // currently no data available
-                    Sleep(100);  // wait and try again: 100ms
-                }
-                iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
-            }
-            n += iResult;
-            data = (char *)realloc(data, n);
-            strcat(data, recvbuf);
-        }
-        recvbuf = (char *) realloc(recvbuf, n);
-        memmove(recvbuf, data, n);
-        iResult = n;
+        cout << "error: " << WSAGetLastError() << endl;
+  
     }
 
     printf("Bytes received: %d\n", iResult);
@@ -200,13 +189,6 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     if (strstr(header, "200 OK") == NULL) {
         printf("Response header is not 200 OK\n");
         exit(1);
-    }
-
-    // kiểm tra connection close hay keep-alive
-    if (strstr(header, "Connection: close") != NULL) {
-        isKeepAlive = false;
-    } else {
-        isKeepAlive = true;
     }
 
     // nếu header có cả transfer encoding và content length thì content length sẽ bị ignore
@@ -266,12 +248,14 @@ int clientSocket::downloadFileCLength( char *fileName, int iResult, int length)
     while (length > 0) {
         memset(recvbuf, '\0', DEFAULT_BUFLEN); // xóa dữ liệu trong buffer
         iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
-        while (iResult == SOCKET_ERROR) {
+        if (iResult == SOCKET_ERROR || iResult == 0) {
             int err= WSAGetLastError();
             printf("recv failed with error: %d\n", err);
             if (err == WSAEWOULDBLOCK) {  // currently no data available
-            Sleep(100);  // wait and try again: 100ms
-            iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+                Sleep(100);  // wait and try again: 100ms
+                iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+            } else {
+                return 225;
             }
         }
         fwrite(recvbuf, 1, iResult, f);
@@ -280,15 +264,6 @@ int clientSocket::downloadFileCLength( char *fileName, int iResult, int length)
 
     // đóng file
     fclose(f);
-
-    // nếu response từ server có connection close thì đóng connection
-    if (isKeepAlive) {
-        isClosed = false;
-    } else {
-        cout << "Connection close 273" << endl;
-        closeConnection();
-        isClosed = true;
-    }
         
     return 0;
     
@@ -378,7 +353,6 @@ int clientSocket::downloadFileChunked( char *fileName, int iResult) {
                     } else {
                         fwrite(recvbuf, 1, iResult, f);
                         size -= iResult;
-                        // memset(recvbuf, '\0', DEFAULT_BUFLEN);
                         iResult = 0;
                     }
                 } else { // nếu size = 0 mà không tìm thấy \r\n
@@ -386,7 +360,6 @@ int clientSocket::downloadFileChunked( char *fileName, int iResult) {
                     memset(chunkData, '\0', DEFAULT_BUFLEN);
                     memmove(chunkData, recvbuf, iResult);
                     data = iResult;
-                    // memset(recvbuf, '\0', DEFAULT_BUFLEN);
                     break;
                 }
             } else { // size > 0
@@ -405,7 +378,6 @@ int clientSocket::downloadFileChunked( char *fileName, int iResult) {
                 } else {
                     fwrite(recvbuf, 1, iResult, f);
                     size -= iResult;
-                    // memset(recvbuf, '\0', DEFAULT_BUFLEN);
                     iResult = 0;
                 }
             }
@@ -415,20 +387,28 @@ int clientSocket::downloadFileChunked( char *fileName, int iResult) {
         if (size != -1) {
             memset(recvbuf, '\0', DEFAULT_BUFLEN);
             iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+
+            if (iResult == SOCKET_ERROR || iResult == 0) {
+                int err= WSAGetLastError();
+                printf("recv failed with error: %d\n", err);
+                if (err == WSAEWOULDBLOCK) {  // currently no data available
+                    Sleep(100);  // wait and try again: 100ms
+                    iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+                } else {
+                    return 225;
+                }
+            }
+
         }
     }
     cout << "line 372" << endl;
     // đóng file
     fclose(f);
+    
+    // giải phóng bộ nhớ
+    free(chunkSize);
+    free(chunkData);
 
-    // nếu response từ server có connection close thì đóng connection
-    if (isKeepAlive) {
-        isClosed = false;
-    } else {
-        cout << "Connection close 411" << endl;
-        closeConnection();
-        isClosed = true;
-    }
     cout << "line 382" << endl;
     return 225;   
 }
@@ -514,17 +494,13 @@ int clientSocket::multipleRequest(char ** links, int linkCount, char *host, char
             memset(newPath, '\0', 1024);
             strcpy(newPath, path);
             strcat(newPath, links[i]);
-
-            // kiểm tra liệu connection đã đóng hay chưa, nếu đã đóng ở lần request trước rồi thì kết nối lại
-            if (isClosed) {
-                cout << "closed connection" << endl;
-                connectToServer(host);
-                cout << "connected again" << endl;
-                isClosed = false;
-            }
-
+            
+            // Tính thời gian tải file
+            int start = clock();
             downloadFile(fileName, host, newPath);
-    }
+            int end = clock();
+            cout << "Time to download: " << 1000 * (end - start)/CLOCKS_PER_SEC << "ms" << endl;
+        }
  
 }
 
@@ -532,19 +508,14 @@ void clientSocket::closeConnection()
 {
     cout << "closing connection" << endl;
 
-    // shutdown the connection since no more data will be sent
+    // shutdown the connection 
     int iResult = shutdown(ConnectSocket, SD_BOTH);
     if (iResult == SOCKET_ERROR) {
         printf("shutdown failed with error: %d\n", WSAGetLastError());
-        closesocket(ConnectSocket);
-        WSACleanup();
-        exit(225);
     }
 
     // close socket
     closesocket(ConnectSocket);
-    ConnectSocket = INVALID_SOCKET; 
-
 }
 
 
