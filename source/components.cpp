@@ -143,7 +143,7 @@ void *handleConnection(char *url){
     processInput(url, host, path, fileName, folderName);
 
     clientSocket client = clientSocket();
-    cout << "address of socket client: " << &client << endl;
+    // cout << "address of socket client: " << &client << endl;
     client.connectToServer(host);
     client.handleRequest(host, path, fileName, folderName, dir);
 
@@ -168,7 +168,7 @@ void *handleMultipleConnection(int n, char **urls) {
     
     // tạo nhiều thread để xử lý nhiều url
     for (int i = 0; i < n; i++) {
-        cout << "creating thread " << i << endl;
+        cout << "creating thread " << i + 1 << endl;
         pthread_create(&threads[i], NULL, (void *(*)(void *))handleConnection, urls[i]);
     }
 

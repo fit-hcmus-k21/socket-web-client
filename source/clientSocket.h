@@ -6,9 +6,8 @@
 #include <ws2tcpip.h>
 #include <winsock2.h>
 #include <stdlib.h>
-#include <stdio.h>
 
-#define DEFAULT_BUFLEN 4096
+#define DEFAULT_BUFLEN 220503
 #define DEFAULT_PORT "80"
 
 
@@ -35,7 +34,7 @@ public:
     int sendRequest(char *request);
 
     // handling errors
-    void handleErrorReceiving();
+    void handleErrorReceiving(int err);
 
     // download file
     void downloadFile(char *fileName, char *host, char *path);

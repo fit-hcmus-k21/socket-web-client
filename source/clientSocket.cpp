@@ -1,30 +1,25 @@
 #include "library.h"
 
-clientSocket::clientSocket()
-{
-    ConnectSocket = INVALID_SOCKET;
-
+clientSocket::clientSocket() {
     int iResult;
     // Initialize Winsock
     iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
     if (iResult != 0) {
-        printf("WSAStartup failed with error: %d\n", iResult);
+        cout << "WSAStartup failed with error: "  << iResult << endl;
         exit(225);
     }
 }
 
-clientSocket::~clientSocket()
-{
+clientSocket::~clientSocket() {
     free(recvbuf);
     closeConnection();
 
     // cleanup
     WSACleanup();
-    cout << "destructured" << endl;
+    cout << "destructured !" << endl;
 }
 
-void clientSocket::connectToServer(char *serverName)
-{
+void clientSocket::connectToServer(char *serverName) {
     cout << "connecting to server" << endl;
 
     int iResult;
@@ -36,7 +31,7 @@ void clientSocket::connectToServer(char *serverName)
     // Resolve the server address and port
     iResult = getaddrinfo(serverName, DEFAULT_PORT, &hints, &result);
     if ( iResult != 0 ) {
-        printf("getaddrinfo failed with error: %d\n", iResult);
+        cout << "getaddrinfo failed with error: " << iResult << endl;
         WSACleanup();
         exit(225);
     }
@@ -47,11 +42,20 @@ void clientSocket::connectToServer(char *serverName)
         // Create a SOCKET for connecting to server
         ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
         if (ConnectSocket == INVALID_SOCKET) {
-            printf("socket failed with error: %ld\n", WSAGetLastError());
+            cout << "socket failed with error: " << WSAGetLastError() << endl;
             freeaddrinfo(result);
             WSACleanup();
             exit(225);
         }
+
+        // set the socket to non-blocking
+        // u_long iMode = 1;  // 0 = blocking mode, 1 = non-blocking mode
+        // ioctlsocket(ConnectSocket, FIONBIO, &iMode); // set non-blocking mode so that the program will not hang
+
+        // if (iResult != 0) {
+        //     cout << "ioctlsocket failed with error: " << iResult << endl; 
+        //     cout << "Error code : " << WSAGetLastError()  << endl;
+        // }       
 
         // Connect to server.
         iResult = connect( ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
@@ -67,15 +71,11 @@ void clientSocket::connectToServer(char *serverName)
     freeaddrinfo(ptr);
 
     if (ConnectSocket == INVALID_SOCKET) {
-        printf("Unable to connect to server!\n");
+        cout << " Unable to connect to server!\n";
         WSACleanup();
         exit(225);
     }
-    printf("Connected to server ! \n");
-
-    // manage the connection
-    // u_long iMode = 1;  // 0 = blocking mode, 1 = non-blocking mode
-    // ioctlsocket(ConnectSocket, FIONBIO, &iMode); // set non-blocking mode so that the program will not hang
+    cout << "Connected to server ! \n";
     
 }
 
@@ -108,43 +108,47 @@ char *clientSocket::createRequest(char *host, char *path) {
     return request;
 }
 
-int clientSocket::sendRequest(char *request)
-{
+int clientSocket::sendRequest(char *request) {
     cout << "sending request" << endl;
 
     int iResult;
     // Send an initial buffer
     iResult = send( ConnectSocket, request, (int)strlen(request), 0 );  
     if (iResult == SOCKET_ERROR) {
-        printf("send failed with error: %d\n", WSAGetLastError());
+        int err = WSAGetLastError();
+        handleErrorReceiving(err);
         closesocket(ConnectSocket);
         WSACleanup();
         return 1;
     }
 
-    printf("\n\nBytes Sent: %ld\n", iResult);
+    cout << "Bytes Sent: " << iResult << endl;
     return 0;
 }
 
-void clientSocket::handleErrorReceiving() {
+void clientSocket::handleErrorReceiving(int err) {
 
     cout << "handling error  ! " << endl;
-
-    int err = WSAGetLastError();
     cout << "Error code: " << err << endl;
 
     switch (err) {
+        case WSAECONNREFUSED:
+            cout << "Error: connection refused !" << endl;
+            cout << "Can call connect again for the same socket ! " << endl;
+            break;
         case WSAETIMEDOUT:
             cout << "Error: connection timed out !" << endl;
+            cout << "Can call connect again for the same socket ! " << endl;
+            break;
+        case WSAENETUNREACH:
+            cout << "Error: network is unreachable !" << endl;
+            cout << "Can call connect again for the same socket ! " << endl;
             break;
         case WSAEWOULDBLOCK:
             cout << "Error: resource temporarily unavailable !" << endl;
             break;
         case WSAENETDOWN:
             cout << "Error: network is down ! " << endl;
-            break;
-        case WSAENETUNREACH:
-            cout << "Error: network is unreachable !" << endl;
             break;
         case WSAENETRESET:
             cout << "Error: the connection has been broken due to keep-alive activity that detected a failure while the operation was in progress !" << endl;
@@ -181,42 +185,49 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     request = createRequest(host, path);
     sendRequest(request);
 
-    printf("\nHost: %s\n", host);
-    printf("File: %s\n", fileName);
-    printf("request: %s\n", request);
+    cout << "Host: " <<  host << endl;
+    cout << "File: " << fileName << endl;
+    cout << "Request: " << request << endl;
 
     int iResult;
     memset(recvbuf, '\0', DEFAULT_BUFLEN);
-    while ((iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0)) == SOCKET_ERROR) {
-        int err= WSAGetLastError();
-        printf("recv failed with error: %d\n", err);
-        if (err == WSAEWOULDBLOCK) {  // currently no data available
-            Sleep(100);  // wait and try again: 100ms
-        } else {
-            return;
-        }
-    }
+    iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
 
-    if (iResult == 0) {
-        // kiểm tra nếu timeout 
+
+    if (iResult == 0 || iResult == SOCKET_ERROR) {
         int err = WSAGetLastError();
-        if (err == WSAETIMEDOUT || err == WSAENOTCONN) {
-            connectToServer(host);
-            sendRequest(request);
+        handleErrorReceiving(err);
+        if (err == WSAEWOULDBLOCK) {
+            Sleep(100);
             iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
+            if (iResult == 0 || iResult == SOCKET_ERROR) {
+                cout << "Error receiving data !" << endl;
+                closesocket(ConnectSocket);
+                WSACleanup();
+                exit(225);
+            }
+            
+        } else if (err == WSAETIMEDOUT || err == WSAENETUNREACH || err == WSAECONNREFUSED) {
+            cout << "Connect to server again ! " << endl;
+            connectToServer(host);
+            downloadFile(fileName, host, path);
+            return;
+        } else {
+            closesocket(ConnectSocket);
+            WSACleanup();
+            exit(225);
         }
     }
 
-    // nếu chưa nhận hết header thì tiếp tục nhận
+    // nếu chưa nhận hết header thì tiếp tục nhận *****
     if (strstr(recvbuf, "\r\n\r\n") == NULL) {
         cout << "header not complete" << endl;
         cout << "header: " << recvbuf << endl;
         cout << "error: " << WSAGetLastError() << endl;
-  
+
     }
 
-    printf("Bytes received: %d\n", iResult);
-    // printf("\nDATA: %s\n\n", recvbuf);
+    cout << "Bytes received: " <<  iResult << endl;
 
     // khai báo biến để lưu header, body
     char *header = (char *)malloc(DEFAULT_BUFLEN);
@@ -229,12 +240,12 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     memmove(recvbuf, body, iResult);
 
     // cout << "Header: " << strlen(header) << endl;
-    cout << "header: " << header << endl;
+    // cout << "header: " << header << endl;
     // cout << "recvbuf: " << recvbuf << endl;
 
     // nếu response header không phải là 200 OK thì thoát
     if (strstr(header, "200 OK") == NULL) {
-        printf("Response header is not 200 OK\n");
+        cout << "Response header is not 200 OK\n";
         exit(1);
     }
 
@@ -276,14 +287,13 @@ void clientSocket::downloadFile(char *fileName, char *host, char *path) {
     }
 }
 
-int clientSocket::downloadFileCLength( char *fileName, int iResult, int length)
-{
+int clientSocket::downloadFileCLength( char *fileName, int iResult, int length) {
     cout << "downloading file with content length" << endl;
 
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
     {
-        printf("Error opening file!\n");
+        cout << "Error opening file!\n";
         exit(1);
     }
 
@@ -297,7 +307,7 @@ int clientSocket::downloadFileCLength( char *fileName, int iResult, int length)
         iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
         if (iResult == SOCKET_ERROR || iResult == 0) {
             int err= WSAGetLastError();
-            printf("recv failed with error: %d\n", err);
+            cout << "recv failed with error: " << err << endl;
             if (err == WSAEWOULDBLOCK) {  // currently no data available
                 Sleep(100);  // wait and try again: 100ms
                 iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
@@ -322,7 +332,7 @@ int clientSocket::downloadFileChunked( char *fileName, int iResult) {
     FILE *f = fopen(fileName, "wb");
     if (f == NULL)
     {
-        printf("Error opening file!\n");
+        cout << "Error opening file!\n";
         exit(1);
     }
 
@@ -437,7 +447,7 @@ int clientSocket::downloadFileChunked( char *fileName, int iResult) {
 
             if (iResult == SOCKET_ERROR || iResult == 0) {
                 int err= WSAGetLastError();
-                printf("recv failed with error: %d\n", err);
+                cout << "recv failed with error: \n" << err << endl;
                 if (err == WSAEWOULDBLOCK) {  // currently no data available
                     Sleep(100);  // wait and try again: 100ms
                     iResult = recv(ConnectSocket, recvbuf, DEFAULT_BUFLEN, 0);
@@ -467,7 +477,7 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
     // tạo thư mục
     if (mkdir(folderName) == -1) 
     {
-        printf("Error creating directory!\n");
+        cout << "Error creating directory!\n";
         exit(1);
     }
 
@@ -483,7 +493,7 @@ int clientSocket::downloadFolder(char *folderName, char *host, char *path)
     FILE *f = fopen(fileName, "r");
     if (f == NULL)
     {
-        printf("Error opening file! \n");
+        cout << "Error opening file! \n";
         exit(1);
     }
 
@@ -551,14 +561,13 @@ int clientSocket::multipleRequest(char ** links, int linkCount, char *host, char
  
 }
 
-void clientSocket::closeConnection()
-{
+void clientSocket::closeConnection() {
     cout << "closing connection" << endl;
 
     // shutdown the connection 
     int iResult = shutdown(ConnectSocket, SD_BOTH);
     if (iResult == SOCKET_ERROR) {
-        printf("shutdown failed with error: %d\n", WSAGetLastError());
+        cout << "shutdown failed with error: \n" << WSAGetLastError() << endl;
     }
 
     // close socket
