@@ -165,6 +165,7 @@ void *handleMultipleConnection(int n, char **urls) {
     pthread_t *threads = (pthread_t *)malloc(n * sizeof(pthread_t));
 
     cout << "start handle multiple connection" << endl;
+    
     // tạo nhiều thread để xử lý nhiều url
     for (int i = 0; i < n; i++) {
         cout << "creating thread " << i << endl;

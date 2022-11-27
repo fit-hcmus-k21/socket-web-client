@@ -126,6 +126,53 @@ int clientSocket::sendRequest(char *request)
     return 0;
 }
 
+void clientSocket::handleErrorReceiving() {
+
+    cout << "handling error  ! " << endl;
+
+    int err = WSAGetLastError();
+    cout << "Error code: " << err << endl;
+
+    switch (err) {
+        case WSAETIMEDOUT:
+            cout << "Error: connection timed out !" << endl;
+            break;
+        case WSAEWOULDBLOCK:
+            cout << "Error: resource temporarily unavailable !" << endl;
+            break;
+        case WSAENETDOWN:
+            cout << "Error: network is down ! " << endl;
+            break;
+        case WSAENETUNREACH:
+            cout << "Error: network is unreachable !" << endl;
+            break;
+        case WSAENETRESET:
+            cout << "Error: the connection has been broken due to keep-alive activity that detected a failure while the operation was in progress !" << endl;
+            break;
+        case WSAECONNABORTED:
+            cout << "Error: software caused connection abort !" << endl;
+            break;
+        case WSAECONNRESET:
+            cout << "Error: connection reset by peer !" << endl;
+            break;
+        case WSAENOBUFS:
+            cout << "Error: no buffer space available !" << endl;
+            break;
+        case WSAENOTCONN:
+            cout << "Error: socket is not connected !" << endl;
+            break;
+        case WSAESHUTDOWN:
+            cout << "Error: cannot send after socket shutdown !" << endl;
+            break;
+        case WSAEHOSTDOWN:
+            cout << "Error: host is down !" << endl;
+            break;
+        case WSAHOST_NOT_FOUND:
+            cout << "Error: host not found !" << endl;
+            break;
+    }
+}
+
 void clientSocket::downloadFile(char *fileName, char *host, char *path) {
 
     cout << "downloading file" << endl;

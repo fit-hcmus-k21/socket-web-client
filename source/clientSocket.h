@@ -34,6 +34,9 @@ public:
     // Send an initial buffer
     int sendRequest(char *request);
 
+    // handling errors
+    void handleErrorReceiving();
+
     // download file
     void downloadFile(char *fileName, char *host, char *path);
 
