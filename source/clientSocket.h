@@ -4,8 +4,9 @@
 
 #include <ws2tcpip.h>
 #include <winsock2.h>
+#include <stdlib.h>
 
-#define DEFAULT_BUFLEN 22
+#define DEFAULT_BUFLEN 50
 #define DEFAULT_PORT "80"
 
 
@@ -18,14 +19,17 @@ class clientSocket {
         // destructure 
         ~clientSocket();
 
+        // get server name
+        void getServerName(char *host);
+
         // Connect to server
-        void connectToServer(char *serverName); 
+        void connectToServer(); 
 
         // handle request
-        void handleRequest(char *host, char *path, char *fileName, char *folderName, char *dir);
+        void handleRequest( char *path, char *fileName, char *folderName, char *dir);
 
         // create request
-        char *createRequest(char *host, char *path);   
+        char *createRequest(char *path);   
 
         // Send an initial buffer
         int sendRequest(char *request);
@@ -34,19 +38,22 @@ class clientSocket {
         void handleErrorReceiving(int err);
 
         // download file
-        void downloadFile(char *fileName, char *host, char *path);
+        void downloadFile(char *fileName, char *path);
 
         // download and save file type content-length
         int downloadFileCLength(char *fileName, int length);
 
         // download and save file type chunked
-        int downloadFileChunked( char *fileName, int iResult);
+        int downloadFileChunked( char *fileName);
 
         // download all file of folder
-        int downloadFolder(char *folderName, char *host, char *path);
+        int downloadFolder(char *folderName, char *path);
 
         // multiple request
-        int multipleRequest(char ** links, int linkCount, char *host, char *path, char *folderName);
+        int multipleRequest(char ** links, int linkCount, char *path, char *folderName);
+
+        // check if connection is closed
+        bool isConnectionClosed();
 
         // Close the socket
         void closeConnection();
@@ -59,10 +66,10 @@ class clientSocket {
         struct addrinfo *ptr;
         struct addrinfo hints;
 
-        char *host = new char[100];
-        bool isConnection = false;
+        char *serverName = (char *) malloc(100);
+        bool isKeepAlive = true;
 
         int iResult;
-        char *recvbuf = (char *)malloc(DEFAULT_BUFLEN);
+        char *recvbuf = (char *) malloc(DEFAULT_BUFLEN);
 };
 

@@ -103,18 +103,16 @@ void splitLink(char *link, vector<char *> &linkList) {
 }
 
 // hàm chỉnh tên file/folder lưu vào directory
-char* createNewFName (char *fname, char *host, char *dir) {
-    char *newFName = (char *)malloc(100);
+void createNewFName (char *fname, char *host, char *dir, char *newFName) {
     memset(newFName, '\0', 100);
     strcat(newFName, dir);
     strcat(newFName, host);
     strcat(newFName, "_");
     strcat(newFName, fname);
-    return newFName;
 }
 
 // xử lý thông tin từ input và trả về thông tin cần thiết
-void processInput(char *url, char *&host, char *&path, char *&fileName, char *&folderName) {
+void processURL(char *url, char *&host, char *&path, char *&fileName, char *&folderName) {
     // memset các biến
     memset(path, '\0', 100);
     memset(host, '\0', 100);
@@ -140,12 +138,13 @@ void *handleConnection(char *url){
     strcpy(dir, "releases\\");
 
     // xử lý url
-    processInput(url, host, path, fileName, folderName);
+    processURL(url, host, path, fileName, folderName);
 
     clientSocket client = clientSocket();
     // cout << "address of socket client: " << &client << endl;
-    client.connectToServer(host);
-    client.handleRequest(host, path, fileName, folderName, dir);
+    client.getServerName(host);
+    client.connectToServer();
+    client.handleRequest( path, fileName, folderName, dir);
 
     // giải phóng bộ nhớ
     cout << "free memory" << endl;
