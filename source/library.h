@@ -3,6 +3,8 @@
 #include <pthread.h>
 #include <direct.h>
 #include <vector>
+#include <stdio.h>
+#include <cstdlib>
 
 #include <iostream>
 using namespace std;

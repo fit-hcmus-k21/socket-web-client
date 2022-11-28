@@ -87,10 +87,7 @@ void splitResponse(char *&response, char *&header, char *&body) {
         // tách body
         body = p + 4;
         *p = '\0';
-    } else {
-        printf("Khong co header");
-        exit(1);
-    }
+    } 
 }
 
 // hàm tách các tham số truyền vào từ command line ra vector các link
