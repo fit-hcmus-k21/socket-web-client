@@ -2,7 +2,6 @@
 
 #include <pthread.h>
 #include <direct.h>
-#include <stdlib.h>
 #include <vector>
 
 #include <iostream>
@@ -21,10 +20,10 @@ void splitResponse(char *&response, char *&header, char *&body) ;
 void splitLink(char *link, vector<char *> &linkList) ;
 
 // hàm chỉnh tên file/folder lưu vào directory
-char* createNewFName (char *fname, char *host, char *dir) ;
+void createNewFName (char *fname, char *host, char *dir, char *newFName) ;
 
 // xử lý thông tin từ input và trả về thông tin cần thiết
-void processInput(char *url, char *&host, char *&path, char *&fileName, char *&folderName) ;
+void processURL(char *url, char *&host, char *&path, char *&fileName, char *&folderName) ;
 
 // handle a connection
 void *handleConnection(char *url);

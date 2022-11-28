@@ -4,6 +4,7 @@
 #pragma comment (lib, "Ws2_32.lib")
 
 int __cdecl main(int argc, char **argv) {
+
     // validate the parameters
     if (argc < 2) {
         printf("usage: %s server-name\n", argv[0]);
