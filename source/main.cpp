@@ -1,8 +1,7 @@
 #include "library.h"
 
-// Need to link with Ws2_32.lib, Mswsock.lib, and Advapi32.lib
+// Need to link with Ws2_32.lib
 #pragma comment (lib, "Ws2_32.lib")
-
 
 int __cdecl main(int argc, char **argv) {
     // validate the parameters

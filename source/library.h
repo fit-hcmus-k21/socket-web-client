@@ -1,10 +1,12 @@
-#include <bits/stdc++.h>
-using namespace std;
-
 #include "clientSocket.h"
 
 #include <pthread.h>
 #include <direct.h>
+#include <stdlib.h>
+#include <vector>
+
+#include <iostream>
+using namespace std;
 
 // tách host và path từ url
 void splitPath(char *url, char *&host, char *&path) ;
