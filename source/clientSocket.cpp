@@ -36,9 +36,9 @@ void clientSocket::connectToServer() {
     ConnectSocket = INVALID_SOCKET;
 
     ZeroMemory( &hints, sizeof(hints) );
-    hints.ai_family = AF_UNSPEC;    // 
+    hints.ai_family = AF_UNSPEC;    
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_protocol = IPPROTO_TCP; 
 
     // Resolve the server address and port
     iResult = getaddrinfo(serverName, DEFAULT_PORT, &hints, &result);
