@@ -29,7 +29,7 @@ class clientSocket {
         void handleRequest( char *path, char *fileName, char *folderName, char *dir);
 
         // create request
-        char *createRequest(char *path);   
+        void createRequest(char *path, char *request);   
 
         // Send an initial buffer
         void sendRequest(char *request);
@@ -70,6 +70,7 @@ class clientSocket {
         bool isKeepAlive = true;
 
         int iResult;
-        char *recvbuf = (char *) malloc(DEFAULT_BUFLEN);
+        int recvbuflen = DEFAULT_BUFLEN;
+        char *recvbuf ;
 };
 

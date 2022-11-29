@@ -83,7 +83,10 @@ void splitResponse(char *&response, char *&header, char *&body) {
     char *p = strstr(response, "\r\n\r\n");
     if (p != NULL) {
         // tách header
-        strncpy(header, response, p - response);
+        int len = p - response;
+        header = (char *)malloc(len + 1); 
+        memmove(header, response, len);
+
         // tách body
         body = p + 4;
         *p = '\0';
@@ -138,19 +141,16 @@ void *handleConnection(char *url){
     processURL(url, host, path, fileName, folderName);
 
     clientSocket client = clientSocket();
-    // cout << "address of socket client: " << &client << endl;
     client.getServerName(host);
     client.connectToServer();
     client.handleRequest( path, fileName, folderName, dir);
 
     // giải phóng bộ nhớ
-    cout << "free memory" << endl;
     free(path);
     free(host);
     free(fileName);
     free(folderName);
     free(dir);
-    cout << "free memory done" << endl;
 
     return NULL;
 }
@@ -160,11 +160,11 @@ void *handleMultipleConnection(int n, char **urls) {
     // khai báo các biến
     pthread_t *threads = (pthread_t *)malloc(n * sizeof(pthread_t));
 
-    cout << "start handle multiple connection" << endl;
+    // cout << "start handle multiple connection" << endl;
     
     // tạo nhiều thread để xử lý nhiều url
     for (int i = 0; i < n; i++) {
-        cout << "creating thread " << i + 1 << endl;
+        // cout << "creating thread " << i + 1 << endl;
         pthread_create(&threads[i], NULL, (void *(*)(void *))handleConnection, urls[i]);
     }
 
@@ -173,7 +173,7 @@ void *handleMultipleConnection(int n, char **urls) {
         pthread_join(threads[i], NULL);
     }
 
-    cout << "handle multiple connection done" << endl;
+    // cout << "handle multiple connection done" << endl;
 
     // giải phóng bộ nhớ
     free(threads);
