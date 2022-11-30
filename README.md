@@ -20,10 +20,12 @@
 
 ___
 
-</br>
+<!-- </br> -->
 
+<div align="center">
 
 <h2 style="text-align:center; color:blue;">👉 Hình ảnh demo chương trình 👈</h2>
+    </br>
 <img src="./docs/img-demo.png"/>
 
 </div>
