@@ -23,34 +23,34 @@ class clientSocket {
         void getServerName(char *host);
 
         // Connect to server
-        void connectToServer(); 
+        bool connectToServer(); 
 
         // handle request
-        void handleRequest( char *path, char *fileName, char *folderName, char *dir);
+        bool handleRequest( char *path, char *fileName, char *folderName, char *dir);
 
         // create request
         void createRequest(char *path, char *request);   
 
         // Send an initial buffer
-        void sendRequest(char *request);
+        bool sendRequest(char *request);
 
         // handle errors
         void handleError(int err);
 
         // download file
-        void downloadFile(char *fileName, char *path);
+        bool downloadFile(char *fileName, char *path);
 
         // download and save file type content-length
-        void downloadFileCLength(char *fileName, int length);
+        bool downloadFileCLength(char *fileName, int length);
 
         // download and save file type chunked
-        void downloadFileChunked( char *fileName);
+        bool downloadFileChunked( char *fileName);
 
         // download all file of folder
-        void downloadFolder(char *folderName, char *path);
+        bool downloadFolder(char *folderName, char *path);
 
         // multiple request
-        void multipleRequest(char ** links, int linkCount, char *path, char *folderName);
+        bool multipleRequest(char ** links, int linkCount, char *path, char *folderName);
 
         // check if connection is closed
         bool isConnectionClosed();

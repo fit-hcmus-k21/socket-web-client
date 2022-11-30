@@ -5,6 +5,7 @@
 #include <vector>
 #include <stdio.h>
 #include <cstdlib>
+#include <windows.h>
 
 #include <iostream>
 using namespace std;
@@ -19,7 +20,7 @@ void getFileName(char *path, char *&fileName, char *&folderName) ;
 void splitResponse(char *&response, char *&header, char *&body) ;
 
 // hàm tách các thPm số truyền vào từ command line ra vector các link
-void splitLink(char *link, vector<char *> &linkList) ;
+void splitLink(char *link, char **linkList, int &count) ;
 
 // hàm chỉnh tên file/folder lưu vào directory
 void createNewFName (char *fname, char *host, char *dir, char *newFName) ;
@@ -28,7 +29,12 @@ void createNewFName (char *fname, char *host, char *dir, char *newFName) ;
 void processURL(char *url, char *&host, char *&path, char *&fileName, char *&folderName) ;
 
 // handle a connection
-void *handleConnection(char *url);
+bool handleConnection(char *url);
 
 // handle multiple connection
-void *handleMultipleConnection(int n, char **urls);
+void handleMultipleConnection(int n, char **urls);
+
+// --------Các hàm hỗ trợ--------
+void gotoxy(short x, short y) ;
+
+void textcolor(int x) ;
