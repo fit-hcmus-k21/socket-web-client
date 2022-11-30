@@ -94,10 +94,13 @@ void splitResponse(char *&response, char *&header, char *&body) {
 }
 
 // hàm tách các tham số truyền vào từ command line ra vector các link
-void splitLink(char *link, vector<char *> &linkList) {
+void splitLink(char *link, char ** linkList, int &count) {
     char *p = strtok(link, " ");
     while (p != NULL) {
-        linkList.push_back(p);
+        *linkList = new char[strlen(p) + 1];
+        strcpy(*linkList, p);
+        count ++;
+        linkList ++;
         p = strtok(NULL, " ");
     }
 }
@@ -128,7 +131,7 @@ void processURL(char *url, char *&host, char *&path, char *&fileName, char *&fol
 }
 
 // handle a connection
-void *handleConnection(char *url){
+bool handleConnection(char *url){
     // khai báo các biến
     char *path = (char *)malloc(100);
     char *host = (char *)malloc(100);
@@ -137,13 +140,18 @@ void *handleConnection(char *url){
     char *dir = (char *)malloc(100);
     strcpy(dir, "releases\\");
 
+    // tạo thư mục releases chứa các file/folder lưu trữ
+    mkdir(dir);
+
     // xử lý url
     processURL(url, host, path, fileName, folderName);
 
+    bool success = 1;
+
     clientSocket client = clientSocket();
     client.getServerName(host);
-    client.connectToServer();
-    client.handleRequest( path, fileName, folderName, dir);
+    if (!client.connectToServer()) success = 0;
+    if (!client.handleRequest( path, fileName, folderName, dir)) success = 0;
 
     // giải phóng bộ nhớ
     free(path);
@@ -152,11 +160,15 @@ void *handleConnection(char *url){
     free(folderName);
     free(dir);
 
-    return NULL;
+    if (success) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 // handle multiple connection
-void *handleMultipleConnection(int n, char **urls) {
+void handleMultipleConnection(int n, char **urls) {
     // khai báo các biến
     pthread_t *threads = (pthread_t *)malloc(n * sizeof(pthread_t));
 
@@ -178,6 +190,20 @@ void *handleMultipleConnection(int n, char **urls) {
     // giải phóng bộ nhớ
     free(threads);
 
-    return NULL;
     
+}
+
+
+// ---------------------------Các hàm hỗ trợ thiết kế giao diện chương trình----------------
+void gotoxy(short x,short y) {
+        HANDLE hConsoleOutput;
+        COORD Cursor_an_Pos = { x,y};
+        hConsoleOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+        SetConsoleCursorPosition(hConsoleOutput , Cursor_an_Pos);
+} 
+
+void textcolor(int x) {
+        HANDLE mau;
+        mau=GetStdHandle(STD_OUTPUT_HANDLE);
+        SetConsoleTextAttribute(mau,x);
 }
