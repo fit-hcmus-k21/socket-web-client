@@ -19,3 +19,11 @@
 ![image](https://user-images.githubusercontent.com/93416202/196466563-62a8c6f6-673e-465f-94fd-2cc2846de96d.png)
 
 ___
+
+</br>
+
+
+<h2 style="text-align:center; color:blue;">👉 Hình ảnh demo chương trình 👈</h2>
+<img src="./docs/img-demo.png"/>
+
+</div>
