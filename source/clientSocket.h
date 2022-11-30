@@ -6,7 +6,7 @@
 #include <winsock2.h>
 #include <stdlib.h>
 
-#define DEFAULT_BUFLEN 50
+#define DEFAULT_BUFLEN 305022
 #define DEFAULT_PORT "80"
 
 
@@ -29,28 +29,28 @@ class clientSocket {
         void handleRequest( char *path, char *fileName, char *folderName, char *dir);
 
         // create request
-        char *createRequest(char *path);   
+        void createRequest(char *path, char *request);   
 
         // Send an initial buffer
-        int sendRequest(char *request);
+        void sendRequest(char *request);
 
-        // handling errors
-        void handleErrorReceiving(int err);
+        // handle errors
+        void handleError(int err);
 
         // download file
         void downloadFile(char *fileName, char *path);
 
         // download and save file type content-length
-        int downloadFileCLength(char *fileName, int length);
+        void downloadFileCLength(char *fileName, int length);
 
         // download and save file type chunked
-        int downloadFileChunked( char *fileName);
+        void downloadFileChunked( char *fileName);
 
         // download all file of folder
-        int downloadFolder(char *folderName, char *path);
+        void downloadFolder(char *folderName, char *path);
 
         // multiple request
-        int multipleRequest(char ** links, int linkCount, char *path, char *folderName);
+        void multipleRequest(char ** links, int linkCount, char *path, char *folderName);
 
         // check if connection is closed
         bool isConnectionClosed();
@@ -70,6 +70,7 @@ class clientSocket {
         bool isKeepAlive = true;
 
         int iResult;
-        char *recvbuf = (char *) malloc(DEFAULT_BUFLEN);
+        int recvbuflen = DEFAULT_BUFLEN;
+        char *recvbuf ;
 };
 

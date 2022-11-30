@@ -6,19 +6,15 @@
 int __cdecl main(int argc, char **argv) {
 
     // validate the parameters
-    if (argc < 2) {
-        printf("usage: %s server-name\n", argv[0]);
-        return 1;
-    }
     if (argc == 2) {
         // single connection
         handleConnection(argv[1]);
-        cout << "main 16" << endl;
-    } else {
+    } else if (argc > 2) {
         // multiple connection
         handleMultipleConnection(argc - 1, argv + 1);
     }
-    cout << "finished" << endl;
+
+    // thiết kế giao diện chương trình
 
     return 225;
 }
