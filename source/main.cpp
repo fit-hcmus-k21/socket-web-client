@@ -48,7 +48,7 @@ int __cdecl main(int argc, char **argv) {
         cout << "-";
         i++;
     }
-    cout << endl;
+    gotoxy(0, 2);
     for (i = 0; i < (columns - 10) / 2; i++) {
         cout << "-";
     }
@@ -127,18 +127,15 @@ int __cdecl main(int argc, char **argv) {
                 // xử lý
                 if (count == 1) {
                     // single connection
-                    if (!handleConnection(linkList[0])) {
-                       // set màu đỏ
-                        textcolor(12);
-                        cout << "\nCó vài lỗi xảy ra ...." << endl;
-                    }
+                    handleConnection(linkList[0]);
+
                 } else if (count >= 2){
                     // multiple connection
                         handleMultipleConnection(count, linkList);
                 } else {
                     // set màu đỏ
                     textcolor(12);
-                    cout << "\nKhông có url nào được nhập vào ?!" << endl;
+                    cout << "\nKhông có url nào được nhập vào ?!" << endl;   // Trường hợp nhập toàn khoảng trắng
                 }
                 // giải phóng bộ nhớ
                 delete[] inputs;

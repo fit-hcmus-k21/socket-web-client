@@ -85,6 +85,7 @@ void splitResponse(char *&response, char *&header, char *&body) {
         // tách header
         int len = p - response;
         header = (char *)malloc(len + 1); 
+        memset(header, '\0', len + 1);
         memmove(header, response, len);
 
         // tách body
@@ -150,8 +151,11 @@ bool handleConnection(char *url){
 
     clientSocket client = clientSocket();
     client.getServerName(host);
-    if (!client.connectToServer()) success = 0;
-    if (!client.handleRequest( path, fileName, folderName, dir)) success = 0;
+    if (!client.connectToServer()) {
+        success = 0;
+    } else {
+        if (!client.handleRequest( path, fileName, folderName, dir)) success = 0;
+    }
 
     // giải phóng bộ nhớ
     free(path);

@@ -4,14 +4,14 @@ clientSocket::clientSocket() {
     // cấp phát bộ nhớ 
     recvbuf = (char *)malloc(recvbuflen);
     if (recvbuf == NULL) {
-        cout << "Error: allocating memory" << endl;
+        cout << "\nError: allocating memory" << endl;
         exit(1);    
     }
 
     // Initialize Winsock
     iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
     if (iResult != 0) {
-        cout << "Error: WSAStartup failed with error: "  << iResult << endl;
+        cout << "\nError: WSAStartup failed with error: "  << iResult << endl;
         exit(1);
     }
 }
@@ -47,11 +47,11 @@ bool clientSocket::connectToServer() {
         int error = WSAGetLastError();
 
         if (error == WSAHOST_NOT_FOUND) {
-            cout << "Error: host not found" << endl;
+            cout << "\nError: host not found" << endl;
         } else if (error == WSANO_DATA) {
-            cout << "Error: data record found" << endl;
+            cout << "\nError: data record found" << endl;
         } else {
-            cout << "Error: getaddrinfo failed with error: " << error << endl;
+            cout << "\nError: getaddrinfo failed with error: " << error << endl;
         }
         WSACleanup();
         return 0;
@@ -63,7 +63,7 @@ bool clientSocket::connectToServer() {
         // Create a SOCKET for connecting to server
         ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
         if (ConnectSocket == INVALID_SOCKET) {
-            cout << "Error: socket failed with error: " << WSAGetLastError() << endl;
+            cout << "\nError: create socket failed with error: " << WSAGetLastError() << endl;
             freeaddrinfo(result);
             WSACleanup();
             return 0;
@@ -82,7 +82,7 @@ bool clientSocket::connectToServer() {
     freeaddrinfo(result);
 
     if (ConnectSocket == INVALID_SOCKET) {
-        cout << "Error: unable to connect to server!\n";
+        cout << "\nError: unable to connect to server!\n";
         WSACleanup();
         return 0;
     }
@@ -277,7 +277,7 @@ bool clientSocket::downloadFile(char *fileName, char *path) {
     // nếu response header không phải là 200 OK thì thoát
     if (strstr(header, "200 OK") == NULL) {
         // cout << "Response header is not 200 OK\n";
-        cout << header << endl;
+        cout << endl << header << endl;
         closeConnection();
         return 0;
     }
@@ -546,11 +546,6 @@ bool clientSocket::downloadFolder(char *folderName, char *path) {
 
     // tạo thư mục
     mkdir(folderName);
-    // if (mkdir(folderName) == -1) 
-    // {
-    //     cout << "Error: directory existed !\n";
-    //     return 0;
-    // }
 
     // tải file index.html
     char *fileName = (char *)malloc(1024);
@@ -629,7 +624,7 @@ bool clientSocket::multipleRequest(char ** links, int linkCount, char *path, cha
             int start = clock();
             bool success = downloadFile(fileName, newPath);
             if (success == 0) {
-                cout << "Error: download file failed !\n";
+                cout << "\nTải file thất bại !\n";
                 return 0;
             }
             int end = clock();
@@ -642,7 +637,7 @@ bool clientSocket::multipleRequest(char ** links, int linkCount, char *path, cha
                 connectToServer();
             }
         }
-        
+
         // tạo tên folder bỏ thư mục release để hiển thị ra màn hình console
         char *noticeStr = (char *)malloc(1024);
         char *folderName2 = (char *)malloc(1024);
